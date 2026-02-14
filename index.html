@@ -1,0 +1,1976 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#0f172a">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>Trading Journal v0.18</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        :root {
+            --bg-primary: #0f172a;
+            --bg-secondary: #1e293b;
+            --bg-card: #334155;
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --profit: #22c55e;
+            --loss: #ef4444;
+            --accent: #3b82f6;
+            --border: #475569;
+            --success-light: rgba(34, 197, 94, 0.15);
+            --danger-light: rgba(239, 68, 68, 0.15);
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            padding: 15px;
+            padding-bottom: 100px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        /* Mobile Header */
+        .mobile-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding: 10px 0;
+        }
+
+        .mobile-header h1 {
+            font-size: 1.25rem;
+            font-weight: 700;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .icon-btn {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            color: var(--text-primary);
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 1.2rem;
+        }
+
+        .version {
+            color: var(--text-secondary);
+            font-size: 0.75rem;
+            margin-left: 5px;
+        }
+
+        /* Time Period Selector */
+        .period-selector {
+            display: flex;
+            background: var(--bg-card);
+            border-radius: 12px;
+            padding: 4px;
+            margin-bottom: 20px;
+            gap: 4px;
+        }
+
+        .period-btn {
+            flex: 1;
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            padding: 10px;
+            border-radius: 8px;
+            font-size: 0.875rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .period-btn.active {
+            background: var(--accent);
+            color: white;
+        }
+
+        /* Main P&L Display */
+        .main-pnl {
+            text-align: center;
+            margin-bottom: 25px;
+        }
+
+        .main-pnl-label {
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+            margin-bottom: 5px;
+        }
+
+        .main-pnl-value {
+            font-size: 2.5rem;
+            font-weight: 700;
+        }
+
+        .main-pnl-value.profit {
+            color: var(--profit);
+        }
+
+        .main-pnl-value.loss {
+            color: var(--loss);
+        }
+
+        /* Challenge Goal Progress */
+        .goal-container {
+            background: var(--bg-secondary);
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 20px;
+            border: 1px solid var(--border);
+        }
+
+        .goal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .goal-label {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+            font-weight: 600;
+        }
+
+        .goal-values {
+            font-size: 0.875rem;
+            color: var(--text-primary);
+            font-weight: 600;
+        }
+
+        .goal-values span:first-child {
+            color: var(--profit);
+        }
+
+        .goal-bar-bg {
+            width: 100%;
+            height: 12px;
+            background: var(--bg-card);
+            border-radius: 6px;
+            overflow: hidden;
+            margin-bottom: 8px;
+        }
+
+        .goal-bar-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--profit) 0%, #4ade80 100%);
+            border-radius: 6px;
+            transition: width 0.5s ease-out;
+            min-width: 4px;
+        }
+
+        .goal-bar-fill.low {
+            background: linear-gradient(90deg, var(--loss) 0%, #f87171 100%);
+        }
+
+        .goal-percentage {
+            text-align: center;
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+
+        /* Account Selector Dropdown */
+        .account-dropdown {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            margin-bottom: 20px;
+            color: var(--accent);
+            font-weight: 600;
+            cursor: pointer;
+            padding: 10px;
+        }
+
+        .account-dropdown select {
+            background: transparent;
+            border: none;
+            color: var(--accent);
+            font-weight: 600;
+            font-size: 1rem;
+            cursor: pointer;
+            text-align: center;
+        }
+
+        /* Calendar Navigation */
+        .calendar-nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding: 0 10px;
+        }
+
+        .calendar-nav button {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            color: var(--text-primary);
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .calendar-nav h3 {
+            font-size: 1.1rem;
+            font-weight: 600;
+        }
+
+        /* Calendar Grid */
+        .calendar-container {
+            background: var(--bg-secondary);
+            border-radius: 16px;
+            padding: 15px;
+            margin-bottom: 20px;
+            border: 1px solid var(--border);
+        }
+
+        .calendar-weekdays {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 8px;
+            margin-bottom: 10px;
+        }
+
+        .calendar-weekdays div {
+            text-align: center;
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            font-weight: 600;
+            padding: 5px 0;
+        }
+
+        .calendar-days {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 8px;
+        }
+
+        .calendar-day {
+            aspect-ratio: auto;
+            min-height: 55px;
+            height: auto;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: var(--bg-card);
+            border-radius: 10px;
+            font-size: 0.875rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            position: relative;
+            padding: 8px 4px;
+            border: 1px solid transparent;
+        }
+
+        .calendar-day .day-number {
+            font-weight: 700;
+            font-size: 1.1rem;
+            margin-bottom: 2px;
+            line-height: 1;
+        }
+
+        .calendar-day .day-pnl {
+            font-size: 0.7rem;
+            font-weight: 600;
+            line-height: 1;
+            margin-top: 2px;
+        }
+
+        .calendar-day.profit {
+            background: var(--success-light);
+            border-color: var(--profit);
+        }
+
+        .calendar-day.profit .day-pnl {
+            color: var(--profit);
+        }
+
+        .calendar-day.loss {
+            background: var(--danger-light);
+            border-color: var(--loss);
+        }
+
+        .calendar-day.loss .day-pnl {
+            color: var(--loss);
+        }
+
+        .calendar-day.today {
+            box-shadow: 0 0 0 2px var(--accent);
+        }
+
+        .calendar-day.empty {
+            background: transparent;
+            cursor: default;
+            border: none;
+            min-height: 55px;
+        }
+
+        .calendar-day.empty:hover {
+            transform: none;
+        }
+
+        .calendar-day.selected {
+            box-shadow: 0 0 0 3px var(--accent);
+        }
+
+        @media (min-width: 768px) {
+            .calendar-day {
+                min-height: 70px;
+                padding: 12px 4px;
+            }
+
+            .calendar-day .day-number {
+                font-size: 1.3rem;
+            }
+
+            .calendar-day .day-pnl {
+                font-size: 0.85rem;
+            }
+
+            .calendar-day.empty {
+                min-height: 70px;
+            }
+        }
+
+        /* Expandable Stats Section */
+        .stats-toggle {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            color: var(--text-primary);
+            width: 100%;
+            padding: 15px;
+            border-radius: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            margin-bottom: 15px;
+            font-size: 1rem;
+            font-weight: 600;
+        }
+
+        .stats-toggle .arrow {
+            transition: transform 0.3s;
+        }
+
+        .stats-toggle.expanded .arrow {
+            transform: rotate(180deg);
+        }
+
+        .stats-panel {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease-out;
+            margin-bottom: 20px;
+        }
+
+        .stats-panel.expanded {
+            max-height: 2000px;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+        }
+
+        @media (min-width: 768px) {
+            .stats-grid {
+                grid-template-columns: repeat(4, 1fr);
+            }
+        }
+
+        .stat-box {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 15px;
+            text-align: center;
+        }
+
+        .stat-box-label {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 8px;
+        }
+
+        .stat-box-value {
+            font-size: 1.25rem;
+            font-weight: 700;
+        }
+
+        .stat-box-value.profit {
+            color: var(--profit);
+        }
+
+        .stat-box-value.loss {
+            color: var(--loss);
+        }
+
+        /* Cards */
+        .card {
+            background: var(--bg-secondary);
+            border-radius: 16px;
+            border: 1px solid var(--border);
+            overflow: hidden;
+            margin-bottom: 20px;
+        }
+
+        .card-header {
+            padding: 20px;
+            border-bottom: 1px solid var(--border);
+            font-weight: 600;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .card-body {
+            padding: 20px;
+        }
+
+        /* Form Styles */
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            background: var(--bg-card);
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+            padding: 12px;
+            border-radius: 10px;
+            font-size: 1rem;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        .btn {
+            background: var(--accent);
+            color: white;
+            border: none;
+            padding: 15px 20px;
+            border-radius: 12px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 600;
+            width: 100%;
+            transition: opacity 0.2s;
+        }
+
+        .btn:active {
+            opacity: 0.8;
+        }
+
+        .btn-success {
+            background: var(--profit);
+        }
+
+        .btn-danger {
+            background: var(--loss);
+        }
+
+        .btn-small {
+            padding: 8px 16px;
+            font-size: 0.875rem;
+            width: auto;
+        }
+
+        /* Trade List */
+        .trade-list {
+            max-height: 600px;
+            overflow-y: auto;
+        }
+
+        .trade-list::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .trade-list::-webkit-scrollbar-track {
+            background: var(--bg-secondary);
+            border-radius: 4px;
+        }
+
+        .trade-list::-webkit-scrollbar-thumb {
+            background: var(--border);
+            border-radius: 4px;
+        }
+
+        .trade-list::-webkit-scrollbar-thumb:hover {
+            background: var(--text-secondary);
+        }
+
+        .trade-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px;
+            border-bottom: 1px solid var(--border);
+            background: var(--bg-card);
+            margin-bottom: 8px;
+            border-radius: 12px;
+        }
+
+        .trade-info {
+            flex: 1;
+        }
+
+        .trade-pair {
+            font-weight: 600;
+            margin-bottom: 4px;
+            font-size: 1rem;
+        }
+
+        .trade-meta {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+
+        .trade-result {
+            text-align: right;
+            margin-right: 10px;
+        }
+
+        .trade-result .amount {
+            font-weight: 700;
+            font-size: 1.1rem;
+        }
+
+        .trade-result .zar {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+
+        .trade-actions {
+            display: flex;
+            gap: 5px;
+        }
+
+        .direction-badge {
+            display: inline-block;
+            padding: 3px 10px;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            margin-left: 8px;
+        }
+
+        .direction-badge.buy {
+            background: var(--success-light);
+            color: var(--profit);
+        }
+
+        .direction-badge.sell {
+            background: var(--danger-light);
+            color: var(--loss);
+        }
+
+        /* Partial Close / Trim Styling */
+        .trade-item.partial-close {
+            border-left: 3px solid var(--accent);
+        }
+
+        .partial-badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 0.65rem;
+            font-weight: 700;
+            margin-left: 8px;
+            background: var(--accent);
+            color: white;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .quality-badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 0.65rem;
+            font-weight: 700;
+            margin-left: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .quality-badge.clean-win {
+            background: rgba(34, 197, 94, 0.2);
+            color: var(--profit);
+        }
+
+        .quality-badge.be {
+            background: rgba(148, 163, 184, 0.2);
+            color: var(--text-secondary);
+        }
+
+        .quality-badge.loss {
+            background: rgba(239, 68, 68, 0.2);
+            color: var(--loss);
+        }
+
+        .manual-close-badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 0.65rem;
+            font-weight: 700;
+            margin-left: 8px;
+            background: rgba(168, 85, 247, 0.2);
+            color: #a855f7;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .remaining-lots {
+            color: var(--accent);
+            font-weight: 600;
+            margin-left: 8px;
+        }
+
+        /* Chart Container */
+        .chart-container {
+            position: relative;
+            height: 250px;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 15px;
+            overflow-x: auto;
+            padding-bottom: 5px;
+        }
+
+        .tab {
+            padding: 10px 20px;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 0.875rem;
+            white-space: nowrap;
+            transition: all 0.2s;
+            color: var(--text-secondary);
+        }
+
+        .tab.active {
+            background: var(--accent);
+            border-color: var(--accent);
+            color: white;
+        }
+
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            z-index: 1000;
+            justify-content: center;
+            align-items: flex-end;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: var(--bg-secondary);
+            border-radius: 20px 20px 0 0;
+            max-width: 500px;
+            width: 100%;
+            max-height: 90vh;
+            overflow-y: auto;
+            animation: slideUp 0.3s ease-out;
+        }
+
+        @keyframes slideUp {
+            from { transform: translateY(100%); }
+            to { transform: translateY(0); }
+        }
+
+        .modal-header {
+            padding: 20px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            background: var(--bg-secondary);
+            z-index: 10;
+        }
+
+        .modal-body {
+            padding: 20px;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 1.5rem;
+            cursor: pointer;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* Bottom Navigation */
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: var(--bg-secondary);
+            border-top: 1px solid var(--border);
+            display: flex;
+            justify-content: space-around;
+            padding: 10px 0;
+            z-index: 100;
+        }
+
+        .nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            padding: 5px 20px;
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 0.75rem;
+            cursor: pointer;
+        }
+
+        .nav-item.active {
+            color: var(--accent);
+        }
+
+        .nav-item span:first-child {
+            font-size: 1.25rem;
+        }
+
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: var(--text-secondary);
+        }
+
+        /* Changelog */
+        .changelog {
+            background: var(--bg-card);
+            padding: 15px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            font-size: 0.875rem;
+        }
+
+        .changelog h4 {
+            margin-bottom: 10px;
+            color: var(--accent);
+        }
+
+        .changelog ul {
+            margin-left: 20px;
+            color: var(--text-secondary);
+        }
+
+        .changelog li {
+            margin-bottom: 5px;
+        }
+
+        /* Desktop Adjustments */
+        @media (min-width: 768px) {
+            body {
+                padding: 30px;
+                padding-bottom: 30px;
+            }
+
+            .bottom-nav {
+                display: none;
+            }
+
+            .main-grid {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 20px;
+            }
+
+            .modal-content {
+                border-radius: 16px;
+                animation: fadeIn 0.3s ease-out;
+            }
+
+            @keyframes fadeIn {
+                from { opacity: 0; transform: scale(0.95); }
+                to { opacity: 1; transform: scale(1); }
+            }
+        }
+
+        @media (max-width: 767px) {
+            .main-grid {
+                display: block;
+            }
+
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Scrollbar Styling */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--bg-primary);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--border);
+            border-radius: 3px;
+        }
+    </style>
+<base target="_blank">
+</head>
+<body>
+    <div class="container">
+        <!-- Mobile Header -->
+        <div class="mobile-header">
+            <div>
+                <h1>📊 Trading Journal <span class="version">v0.14</span></h1>
+            </div>
+            <div class="header-actions">
+                <button class="icon-btn" onclick="openModal('settingsModal')">⚙️</button>
+            </div>
+        </div>
+
+        <!-- Period Selector -->
+        <div class="period-selector">
+            <button class="period-btn" onclick="setPeriod('week')">Week</button>
+            <button class="period-btn active" onclick="setPeriod('month')">Month</button>
+            <button class="period-btn" onclick="setPeriod('year')">Year</button>
+            <button class="period-btn" onclick="setPeriod('all')">All</button>
+        </div>
+
+        <!-- Main P&L Display -->
+        <div class="main-pnl">
+            <div class="main-pnl-label">Total P&L</div>
+            <div class="main-pnl-value profit" id="mainPnL">+$0.00</div>
+        </div>
+
+        <!-- Challenge Goal Progress -->
+        <div class="goal-container">
+            <div class="goal-header">
+                <span class="goal-label">Challenge Goal</span>
+                <span class="goal-values">
+                    <span id="currentGoalProgress">$0</span> / 
+                    <span id="goalTarget">$10,000</span>
+                </span>
+            </div>
+            <div class="goal-bar-bg">
+                <div class="goal-bar-fill" id="goalBar" style="width: 0%;"></div>
+            </div>
+            <div class="goal-percentage" id="goalPercentage">0% achieved</div>
+        </div>
+
+        <!-- Account Selector -->
+        <div class="account-dropdown">
+            <select id="accountSelect" onchange="changeAccount()"></select>
+            <span>▼</span>
+        </div>
+
+        <!-- Calendar Navigation -->
+        <div class="calendar-nav">
+            <button onclick="changeMonth(-1)">‹</button>
+            <h3 id="currentMonthDisplay">February 2026</h3>
+            <button onclick="changeMonth(1)">›</button>
+        </div>
+
+        <!-- Calendar -->
+        <div class="calendar-container">
+            <div class="calendar-weekdays">
+                <div>SUN</div>
+                <div>MON</div>
+                <div>TUE</div>
+                <div>WED</div>
+                <div>THU</div>
+                <div>FRI</div>
+                <div>SAT</div>
+            </div>
+            <div class="calendar-days" id="calendar"></div>
+        </div>
+
+        <!-- Expandable Stats -->
+        <button class="stats-toggle" onclick="toggleStats()">
+            <span>📊 Detailed Statistics</span>
+            <span class="arrow">▼</span>
+        </button>
+
+        <div class="stats-panel" id="statsPanel">
+            <div class="stats-grid">
+                <div class="stat-box">
+                    <div class="stat-box-label">Win Rate</div>
+                    <div class="stat-box-value" id="statWinRate">0%</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-box-label">Total Trades</div>
+                    <div class="stat-box-value" id="statTotalTrades">0</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-box-label">Days Traded</div>
+                    <div class="stat-box-value" id="statDaysTraded">0</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-box-label">Profit Factor</div>
+                    <div class="stat-box-value" id="statProfitFactor">0.00</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-box-label">Best Trade</div>
+                    <div class="stat-box-value profit" id="statBestTrade">+$0.00</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-box-label">Worst Trade</div>
+                    <div class="stat-box-value loss" id="statWorstTrade">-$0.00</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-box-label">Avg Win</div>
+                    <div class="stat-box-value profit" id="statAvgWin">+$0.00</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-box-label">Avg Loss</div>
+                    <div class="stat-box-value loss" id="statAvgLoss">-$0.00</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-box-label">Most Traded</div>
+                    <div class="stat-box-value" id="statMostTraded">-</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-box-label">High Watermark</div>
+                    <div class="stat-box-value" id="statHighWatermark">$0.00</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Charts Card -->
+        <div class="card">
+            <div class="card-header">
+                <span>📈 Analytics</span>
+            </div>
+            <div class="card-body">
+                <div class="tabs">
+                    <div class="tab active" onclick="switchChart('equity')">Equity</div>
+                    <div class="tab" onclick="switchChart('daily')">Daily</div>
+                    <div class="tab" onclick="switchChart('winloss')">Win/Loss</div>
+                </div>
+                <div class="chart-container">
+                    <canvas id="mainChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Add Trade Card -->
+        <div class="card">
+            <div class="card-header">
+                <span>➕ Quick Add Trade</span>
+            </div>
+            <div class="card-body">
+                <form id="tradeForm" onsubmit="saveTrade(event)">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Date</label>
+                            <input type="date" id="tradeDate" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Pair</label>
+                            <input type="text" id="tradePair" placeholder="XAUUSD" required>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Direction</label>
+                            <select id="tradeDirection">
+                                <option value="BUY">BUY</option>
+                                <option value="SELL">SELL</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Trade Quality</label>
+                            <select id="tradeQuality">
+                                <option value="">Not specified</option>
+                                <option value="Clean Win">✅ Clean Win</option>
+                                <option value="BE">⚪ Break Even</option>
+                                <option value="Loss">❌ Loss</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Result (USD)</label>
+                            <input type="number" id="tradeResult" step="0.01" placeholder="-50 or 100" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Lot Size</label>
+                            <input type="number" id="tradeLots" step="0.01" placeholder="Optional">
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Entry Price</label>
+                            <input type="number" id="tradeEntry" step="0.00001" placeholder="Optional">
+                        </div>
+                        <div class="form-group">
+                            <label>Exit Price</label>
+                            <input type="number" id="tradeExit" step="0.00001" placeholder="Optional">
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                                <input type="checkbox" id="tradeManualClose" style="width: auto; margin: 0;">
+                                <span>Manual Close</span>
+                            </label>
+                        </div>
+                        <div class="form-group">
+                            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                                <input type="checkbox" id="tradePartialClose" style="width: auto; margin: 0;">
+                                <span>Partial Close (Trim)</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Notes</label>
+                        <textarea id="tradeNotes" rows="2" placeholder="Optional notes..."></textarea>
+                    </div>
+
+                    <button type="submit" class="btn btn-success">Save Trade</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Trade History -->
+        <div class="card">
+            <div class="card-header">
+                <span>📋 Recent Trades</span>
+                <button class="btn btn-small" onclick="toggleTradeView()">Show Date Filter</button>
+            </div>
+            <div class="card-body">
+                <div id="selectedDateLabel" style="margin-bottom: 15px; color: var(--text-secondary); font-size: 0.875rem;"></div>
+                <div class="trade-list" id="tradeList">
+                    <div class="empty-state">No trades yet. Add your first trade above!</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Changelog -->
+        <div class="changelog">
+            <h4>📝 Changelog v0.18</h4>
+            <ul>
+                <li>Added Manual Close checkbox for tracking manually closed trades</li>
+                <li>Added Partial Close checkbox to both Add and Edit forms</li>
+                <li>Manual close trades now display with 🖐️ MANUAL badge</li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- Bottom Navigation (Mobile) -->
+    <nav class="bottom-nav">
+        <div class="nav-item active" onclick="scrollToSection('calendar')">
+            <span>📅</span>
+            <span>Calendar</span>
+        </div>
+        <div class="nav-item" onclick="scrollToSection('tradeForm')">
+            <span>➕</span>
+            <span>Add</span>
+        </div>
+        <div class="nav-item" onclick="toggleStats()">
+            <span>📊</span>
+            <span>Stats</span>
+        </div>
+    </nav>
+
+    <!-- Settings Modal -->
+    <div class="modal" id="settingsModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>⚙️ Settings</h2>
+                <button class="close-btn" onclick="closeModal('settingsModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>USD to ZAR Exchange Rate</label>
+                    <div style="display: flex; gap: 10px;">
+                        <input type="number" id="exchangeRate" step="0.01" style="flex: 1;">
+                        <button class="btn btn-small" onclick="fetchExchangeRate()" style="width: auto;">🔄</button>
+                    </div>
+                    <small style="color: var(--text-secondary);">Last updated: <span id="rateLastUpdated">Never</span></small>
+                </div>
+
+                <div class="form-group">
+                    <label>Challenge Profit Goal (USD)</label>
+                    <input type="number" id="challengeGoal" step="100" placeholder="10000" onchange="updateMonthlyGoal()">
+                    <small style="color: var(--text-secondary);">Set your challenge account target</small>
+                </div>
+
+                <div class="form-group">
+                    <label>Accounts</label>
+                    <div id="accountList" style="margin-bottom: 10px;"></div>
+                    <div style="display: flex; gap: 10px;">
+                        <input type="text" id="newAccountName" placeholder="New account name" style="flex: 1;">
+                        <button class="btn btn-small" onclick="addAccount()" style="width: auto;">Add</button>
+                    </div>
+                </div>
+
+                <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                    <button class="btn" onclick="exportData()">📥 JSON Backup</button>
+                    <button class="btn" onclick="exportCSV()">📄 Export CSV</button>
+                    <label class="btn" style="cursor: pointer; text-align: center;">
+                        📤 Import JSON
+                        <input type="file" id="importFile" accept=".json" style="display: none;" onchange="importData(this)">
+                    </label>
+                    <button class="btn btn-danger" onclick="resetData()">🗑️ Reset</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Trade Modal -->
+    <div class="modal" id="editModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>✏️ Edit Trade</h2>
+                <button class="close-btn" onclick="closeModal('editModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="editForm" onsubmit="updateTrade(event)">
+                    <input type="hidden" id="editTradeId">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Date</label>
+                            <input type="date" id="editDate" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Pair</label>
+                            <input type="text" id="editPair" required>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Direction</label>
+                            <select id="editDirection">
+                                <option value="BUY">BUY</option>
+                                <option value="SELL">SELL</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Trade Quality</label>
+                            <select id="editQuality">
+                                <option value="">Not specified</option>
+                                <option value="Clean Win">✅ Clean Win</option>
+                                <option value="BE">⚪ Break Even</option>
+                                <option value="Loss">❌ Loss</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Result (USD)</label>
+                            <input type="number" id="editResult" step="0.01" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Lot Size</label>
+                            <input type="number" id="editLots" step="0.01">
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Entry Price</label>
+                            <input type="number" id="editEntry" step="0.00001">
+                        </div>
+                        <div class="form-group">
+                            <label>Exit Price</label>
+                            <input type="number" id="editExit" step="0.00001">
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                                <input type="checkbox" id="editManualClose" style="width: auto; margin: 0;">
+                                <span>Manual Close</span>
+                            </label>
+                        </div>
+                        <div class="form-group">
+                            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                                <input type="checkbox" id="editPartialClose" style="width: auto; margin: 0;">
+                                <span>Partial Close (Trim)</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Notes</label>
+                        <textarea id="editNotes" rows="2"></textarea>
+                    </div>
+
+                    <button type="submit" class="btn btn-success">Update Trade</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Challenge Account Trades - Complete data from Vault Funded dashboard
+        const defaultChallengeTrades = [
+            // Page 1 trades (from image 3)
+            { id: "c001", date: "2026-02-10", pair: "XAUUSD", direction: "SELL", resultUSD: -7.59, entry: 5043.85, exit: 5046.38, lots: 0.03, notes: "13:17-13:20" },
+            { id: "c002", date: "2026-02-09", pair: "XAUUSD", direction: "BUY", resultUSD: 39.78, entry: 4982.81, exit: 4996.07, lots: 0.03, notes: "10:30-10:46" },
+            { id: "c003", date: "2026-02-09", pair: "XAUUSD", direction: "SELL", resultUSD: 7.64, entry: 5032.54, exit: 5028.72, lots: 0.02, notes: "08:48" },
+            { id: "c004", date: "2026-02-09", pair: "XAUUSD", direction: "SELL", resultUSD: -3.76, entry: 5031.78, exit: 5033.66, lots: 0.02, notes: "08:46-08:48" },
+            { id: "c005", date: "2026-02-06", pair: "XAUUSD", direction: "SELL", resultUSD: 30.26, entry: 4933.17, exit: 4918.04, lots: 0.02, notes: "13:38-14:08" },
+            { id: "c006", date: "2026-02-04", pair: "XAUUSD", direction: "BUY", resultUSD: -0.58, entry: 5049.30, exit: 5049.01, lots: 0.02, notes: "09:32-09:33" },
+            { id: "c007", date: "2026-02-02", pair: "XAUUSD", direction: "SELL", resultUSD: -50.14, entry: 4749.93, exit: 4775.00, lots: 0.02, notes: "11:15-11:40" },
+            { id: "c008", date: "2026-02-02", pair: "XAUUSD", direction: "SELL", resultUSD: -2.65, entry: 4645.35, exit: 4648.00, lots: 0.01, notes: "09:14-09:17" },
+            { id: "c009", date: "2026-02-02", pair: "XAUUSD", direction: "SELL", resultUSD: 25.32, entry: 4639.03, exit: 4630.59, lots: 0.03, notes: "08:21-08:39" },
+            { id: "c010", date: "2026-01-27", pair: "XAUUSD", direction: "BUY", resultUSD: 86.90, entry: 5067.15, exit: 5084.53, lots: 0.05, notes: "11:52-13:11" },
+            
+            // Page 2 trades (from image 4)
+            { id: "c011", date: "2026-02-13", pair: "XAUUSD", direction: "BUY", resultUSD: 27.70, entry: 4939.10, exit: 4966.80, lots: 0.01, notes: "11:24-12:16" },
+            { id: "c012", date: "2026-02-13", pair: "XAUUSD", direction: "BUY", resultUSD: 17.45, entry: 4939.10, exit: 4956.55, lots: 0.01, notes: "11:24-12:01" },
+            { id: "c013", date: "2026-02-12", pair: "XAUUSD", direction: "BUY", resultUSD: 5.14, entry: 5039.96, exit: 5045.10, lots: 0.01, notes: "14:57-16:10" },
+            { id: "c014", date: "2026-02-12", pair: "XAUUSD", direction: "BUY", resultUSD: 27.26, entry: 5039.96, exit: 5067.22, lots: 0.01, notes: "14:57-15:18" },
+            { id: "c015", date: "2026-02-12", pair: "XAUUSD", direction: "BUY", resultUSD: 26.21, entry: 5039.96, exit: 5066.17, lots: 0.01, notes: "14:57-15:19" },
+            { id: "c016", date: "2026-02-12", pair: "XAUUSD", direction: "BUY", resultUSD: 34.95, entry: 5039.96, exit: 5051.61, lots: 0.03, notes: "14:57-15:04" },
+            { id: "c017", date: "2026-02-11", pair: "XAUUSD", direction: "BUY", resultUSD: -25.08, entry: 5028.48, exit: 5024.30, lots: 0.06, notes: "13:30" },
+            { id: "c018", date: "2026-02-11", pair: "XAUUSD", direction: "SELL", resultUSD: 19.74, entry: 5067.73, exit: 5057.86, lots: 0.02, notes: "07:11-07:27" },
+            { id: "c019", date: "2026-02-11", pair: "XAUUSD", direction: "SELL", resultUSD: 8.20, entry: 5067.73, exit: 5059.53, lots: 0.01, notes: "07:11-07:19" },
+            { id: "c020", date: "2026-02-10", pair: "XAUUSD", direction: "SELL", resultUSD: -4.74, entry: 5042.87, exit: 5044.45, lots: 0.03, notes: "13:23-13:30" }
+        ];
+
+        let data = {
+            settings: { 
+                usdToZarRate: 18.50, 
+                lastUpdated: new Date().toISOString().split('T')[0],
+                challengeGoal: 10000
+            },
+            accounts: {
+                'Main Account': [],
+                'Small Account': [],
+                'Challenge Account': [...defaultChallengeTrades]
+            }
+        };
+
+        let currentAccount = 'Challenge Account';
+        let selectedDate = null;
+        let currentChart = null;
+        let currentChartType = 'equity';
+        let currentPeriod = 'month';
+        let currentMonth = new Date(2026, 1, 1);
+
+        document.addEventListener('DOMContentLoaded', () => {
+            loadData();
+            initAccountSelector();
+            document.getElementById('tradeDate').value = new Date().toISOString().split('T')[0];
+            document.getElementById('exchangeRate').value = data.settings.usdToZarRate;
+            document.getElementById('rateLastUpdated').textContent = data.settings.lastUpdated;
+            document.getElementById('challengeGoal').value = data.settings.challengeGoal || 10000;
+            updateDisplay();
+        });
+
+        function loadData() {
+            const saved = localStorage.getItem('tradingJournal');
+            if (saved) {
+                const parsed = JSON.parse(saved);
+                data.settings = parsed.settings || data.settings;
+                data.accounts = parsed.accounts || data.accounts;
+                ['Main Account', 'Small Account', 'Challenge Account'].forEach(acc => {
+                    if (!data.accounts[acc]) data.accounts[acc] = [];
+                });
+                if (data.accounts['Challenge Account'].length === 0) {
+                    data.accounts['Challenge Account'] = [...defaultChallengeTrades];
+                }
+            }
+        }
+
+        function saveData() {
+            localStorage.setItem('tradingJournal', JSON.stringify(data));
+        }
+
+        function updateMonthlyGoal() {
+            const goal = parseFloat(document.getElementById('challengeGoal').value);
+            if (goal && goal > 0) {
+                data.settings.challengeGoal = goal;
+                saveData();
+                updateGoalDisplay();
+            }
+        }
+
+        function updateGoalDisplay() {
+            const trades = data.accounts[currentAccount];
+
+            // Use TOTAL P&L for challenge goal (all trades)
+            const totalPnL = trades.reduce((sum, t) => sum + t.resultUSD, 0);
+            const goal = data.settings.challengeGoal || 10000;
+
+            // Calculate percentage (can go over 100%)
+            const percentage = Math.max((totalPnL / goal) * 100, 0);
+            const displayPercentage = Math.min(percentage, 100);
+
+            document.getElementById('currentGoalProgress').textContent = (totalPnL >= 0 ? '+$' : '-$') + Math.abs(totalPnL).toFixed(2);
+            document.getElementById('goalTarget').textContent = '$' + goal.toLocaleString();
+            document.getElementById('goalBar').style.width = displayPercentage + '%';
+            document.getElementById('goalPercentage').textContent = percentage.toFixed(1) + '% achieved';
+
+            // Change color if negative
+            if (totalPnL < 0) {
+                document.getElementById('goalBar').classList.add('low');
+                document.getElementById('currentGoalProgress').style.color = 'var(--loss)';
+            } else {
+                document.getElementById('goalBar').classList.remove('low');
+                document.getElementById('currentGoalProgress').style.color = 'var(--profit)';
+            }
+        }
+
+        function updateDisplay() {
+            updateStats();
+            updateGoalDisplay();
+            renderCalendar();
+            renderChart();
+            renderTradeList();
+            updateDetailedStats();
+        }
+
+        function changeMonth(delta) {
+            currentMonth.setMonth(currentMonth.getMonth() + delta);
+            renderCalendar();
+            updateStats();
+        }
+
+        function setPeriod(period) {
+            currentPeriod = period;
+            document.querySelectorAll('.period-btn').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+            updateStats();
+            updateDetailedStats();
+        }
+
+        function toggleStats() {
+            const panel = document.getElementById('statsPanel');
+            const toggle = document.querySelector('.stats-toggle');
+            panel.classList.toggle('expanded');
+            toggle.classList.toggle('expanded');
+        }
+
+        function initAccountSelector() {
+            const select = document.getElementById('accountSelect');
+            select.innerHTML = '';
+            Object.keys(data.accounts).forEach(account => {
+                const option = document.createElement('option');
+                option.value = account;
+                option.textContent = account;
+                if (account === currentAccount) option.selected = true;
+                select.appendChild(option);
+            });
+        }
+
+        function changeAccount() {
+            currentAccount = document.getElementById('accountSelect').value;
+            selectedDate = null;
+            updateDisplay();
+        }
+
+        function addAccount() {
+            const name = document.getElementById('newAccountName').value.trim();
+            if (!name) return alert('Enter account name');
+            if (data.accounts[name]) return alert('Account exists');
+            data.accounts[name] = [];
+            saveData();
+            document.getElementById('newAccountName').value = '';
+            initAccountSelector();
+            updateAccountList();
+        }
+
+        function deleteAccount(name) {
+            if (Object.keys(data.accounts).length <= 1) return alert('Cannot delete last account');
+            if (!confirm(`Delete "${name}"?`)) return;
+            delete data.accounts[name];
+            if (currentAccount === name) currentAccount = Object.keys(data.accounts)[0];
+            saveData();
+            initAccountSelector();
+            updateAccountList();
+            updateDisplay();
+        }
+
+        function updateAccountList() {
+            const list = document.getElementById('accountList');
+            list.innerHTML = '';
+            Object.keys(data.accounts).forEach(account => {
+                const div = document.createElement('div');
+                div.style.cssText = 'display: flex; justify-content: space-between; align-items: center; padding: 10px; background: var(--bg-card); border-radius: 8px; margin-bottom: 8px;';
+                div.innerHTML = `<span>${account} (${data.accounts[account].length})</span><button class="btn btn-danger btn-small" onclick="deleteAccount('${account}')">Delete</button>`;
+                list.appendChild(div);
+            });
+        }
+
+        function renderCalendar() {
+            const year = currentMonth.getFullYear();
+            const month = currentMonth.getMonth();
+            document.getElementById('currentMonthDisplay').textContent = 
+                currentMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+
+            const firstDay = new Date(year, month, 1).getDay(); // 0 = Sunday, 1 = Monday, etc.
+            const daysInMonth = new Date(year, month + 1, 0).getDate();
+            const calendar = document.getElementById('calendar');
+            calendar.innerHTML = '';
+
+            // Add empty cells for days before the 1st of the month
+            for (let i = 0; i < firstDay; i++) {
+                const div = document.createElement('div');
+                div.className = 'calendar-day empty';
+                calendar.appendChild(div);
+            }
+
+            const trades = data.accounts[currentAccount];
+            const today = new Date().toISOString().split('T')[0];
+
+            for (let day = 1; day <= daysInMonth; day++) {
+                const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                const dayTrades = trades.filter(t => t.date === dateStr);
+                const dayPnL = dayTrades.reduce((sum, t) => sum + t.resultUSD, 0);
+
+                const div = document.createElement('div');
+                div.className = 'calendar-day';
+                if (dayTrades.length > 0) div.className += dayPnL >= 0 ? ' profit' : ' loss';
+                if (dateStr === today) div.className += ' today';
+                if (selectedDate === dateStr) div.className += ' selected';
+
+                div.innerHTML = `<span class="day-number">${day}</span>${dayTrades.length > 0 ? `<span class="day-pnl">${dayPnL >= 0 ? '+' : ''}${dayPnL.toFixed(0)}</span>` : '<span style="color: var(--text-secondary);">—</span>'}`;
+                div.onclick = () => selectDate(dateStr);
+                calendar.appendChild(div);
+            }
+
+            // Fill remaining cells to complete the grid (optional, for consistent height)
+            const totalCells = firstDay + daysInMonth;
+            const remainingCells = (7 - (totalCells % 7)) % 7;
+            for (let i = 0; i < remainingCells; i++) {
+                const div = document.createElement('div');
+                div.className = 'calendar-day empty';
+                calendar.appendChild(div);
+            }
+        }
+
+        function selectDate(date) {
+            selectedDate = date;
+            renderCalendar();
+            renderTradeList();
+        }
+
+        function showAllTrades() {
+            selectedDate = null;
+            renderCalendar();
+            renderTradeList();
+        }
+
+        function toggleTradeView() {
+            if (selectedDate) {
+                selectedDate = null;
+                renderCalendar();
+                renderTradeList();
+            } else {
+                // If no date selected, scroll to calendar to pick one
+                document.querySelector('.calendar-container').scrollIntoView({ behavior: 'smooth' });
+            }
+        }
+
+        function updateStats() {
+            const trades = getFilteredTrades();
+            const totalUSD = trades.reduce((sum, t) => sum + t.resultUSD, 0);
+            const mainPnL = document.getElementById('mainPnL');
+            mainPnL.textContent = (totalUSD >= 0 ? '+$' : '-$') + Math.abs(totalUSD).toFixed(2);
+            mainPnL.className = 'main-pnl-value ' + (totalUSD >= 0 ? 'profit' : 'loss');
+        }
+
+        function updateDetailedStats() {
+            const trades = getFilteredTrades();
+            const wins = trades.filter(t => t.resultUSD > 0);
+            const losses = trades.filter(t => t.resultUSD < 0);
+
+            const winRate = trades.length > 0 ? Math.round((wins.length / trades.length) * 100) : 0;
+            const uniqueDays = new Set(trades.map(t => t.date)).size;
+
+            const totalWins = wins.reduce((sum, t) => sum + t.resultUSD, 0);
+            const totalLosses = Math.abs(losses.reduce((sum, t) => sum + t.resultUSD, 0));
+            const profitFactor = totalLosses > 0 ? (totalWins / totalLosses).toFixed(2) : '0.00';
+
+            const bestTrade = trades.length > 0 ? Math.max(...trades.map(t => t.resultUSD)) : 0;
+            const worstTrade = trades.length > 0 ? Math.min(...trades.map(t => t.resultUSD)) : 0;
+
+            const avgWin = wins.length > 0 ? totalWins / wins.length : 0;
+            const avgLoss = losses.length > 0 ? losses.reduce((sum, t) => sum + t.resultUSD, 0) / losses.length : 0;
+
+            const symbolCounts = {};
+            trades.forEach(t => { symbolCounts[t.pair] = (symbolCounts[t.pair] || 0) + 1; });
+            const mostTraded = Object.entries(symbolCounts).sort((a, b) => b[1] - a[1])[0]?.[0] || '-';
+
+            let equity = 0, highWatermark = 0;
+            [...trades].sort((a, b) => new Date(a.date) - new Date(b.date)).forEach(t => {
+                equity += t.resultUSD;
+                if (equity > highWatermark) highWatermark = equity;
+            });
+
+            document.getElementById('statWinRate').textContent = winRate + '%';
+            document.getElementById('statTotalTrades').textContent = trades.length;
+            document.getElementById('statDaysTraded').textContent = uniqueDays;
+            document.getElementById('statProfitFactor').textContent = profitFactor;
+            document.getElementById('statBestTrade').textContent = '+$' + bestTrade.toFixed(2);
+            document.getElementById('statWorstTrade').textContent = '-$' + Math.abs(worstTrade).toFixed(2);
+            document.getElementById('statAvgWin').textContent = '+$' + avgWin.toFixed(2);
+            document.getElementById('statAvgLoss').textContent = avgLoss < 0 ? '-$' + Math.abs(avgLoss).toFixed(2) : '$0.00';
+            document.getElementById('statMostTraded').textContent = mostTraded;
+            document.getElementById('statHighWatermark').textContent = '$' + highWatermark.toFixed(2);
+        }
+
+        function getFilteredTrades() {
+            const trades = data.accounts[currentAccount];
+            const now = new Date();
+
+            switch(currentPeriod) {
+                case 'week':
+                    const weekAgo = new Date(now - 7 * 24 * 60 * 60 * 1000);
+                    return trades.filter(t => new Date(t.date) >= weekAgo);
+                case 'month':
+                    return trades.filter(t => {
+                        const d = new Date(t.date);
+                        return d.getMonth() === currentMonth.getMonth() && d.getFullYear() === currentMonth.getFullYear();
+                    });
+                case 'year':
+                    return trades.filter(t => new Date(t.date).getFullYear() === currentMonth.getFullYear());
+                default:
+                    return trades;
+            }
+        }
+
+        function saveTrade(e) {
+            e.preventDefault();
+            const trade = {
+                id: Date.now().toString(),
+                date: document.getElementById('tradeDate').value,
+                pair: document.getElementById('tradePair').value.toUpperCase(),
+                direction: document.getElementById('tradeDirection').value,
+                quality: document.getElementById('tradeQuality').value,
+                resultUSD: parseFloat(document.getElementById('tradeResult').value),
+                entry: document.getElementById('tradeEntry').value || null,
+                exit: document.getElementById('tradeExit').value || null,
+                lots: document.getElementById('tradeLots').value || null,
+                manualClose: document.getElementById('tradeManualClose').checked,
+                partialClose: document.getElementById('tradePartialClose').checked,
+                notes: document.getElementById('tradeNotes').value
+            };
+
+            data.accounts[currentAccount].push(trade);
+            saveData();
+            document.getElementById('tradeForm').reset();
+            document.getElementById('tradeDate').value = new Date().toISOString().split('T')[0];
+            updateDisplay();
+        }
+
+        function deleteTrade(id) {
+            if (!confirm('Delete trade?')) return;
+            data.accounts[currentAccount] = data.accounts[currentAccount].filter(t => t.id !== id);
+            saveData();
+            updateDisplay();
+        }
+
+        function editTrade(id) {
+            const trade = data.accounts[currentAccount].find(t => t.id === id);
+            if (!trade) return;
+
+            document.getElementById('editTradeId').value = trade.id;
+            document.getElementById('editDate').value = trade.date;
+            document.getElementById('editPair').value = trade.pair;
+            document.getElementById('editDirection').value = trade.direction;
+            document.getElementById('editQuality').value = trade.quality || '';
+            document.getElementById('editResult').value = trade.resultUSD;
+            document.getElementById('editEntry').value = trade.entry || '';
+            document.getElementById('editExit').value = trade.exit || '';
+            document.getElementById('editLots').value = trade.lots || '';
+            document.getElementById('editManualClose').checked = trade.manualClose || false;
+            document.getElementById('editPartialClose').checked = trade.partialClose || false;
+            document.getElementById('editNotes').value = trade.notes || '';
+
+            openModal('editModal');
+        }
+
+        function updateTrade(e) {
+            e.preventDefault();
+            const id = document.getElementById('editTradeId').value;
+            const trade = data.accounts[currentAccount].find(t => t.id === id);
+            if (!trade) return;
+
+            trade.date = document.getElementById('editDate').value;
+            trade.pair = document.getElementById('editPair').value.toUpperCase();
+            trade.direction = document.getElementById('editDirection').value;
+            trade.quality = document.getElementById('editQuality').value;
+            trade.resultUSD = parseFloat(document.getElementById('editResult').value);
+            trade.entry = document.getElementById('editEntry').value || null;
+            trade.exit = document.getElementById('editExit').value || null;
+            trade.lots = document.getElementById('editLots').value || null;
+            trade.manualClose = document.getElementById('editManualClose').checked;
+            trade.partialClose = document.getElementById('editPartialClose').checked;
+            trade.notes = document.getElementById('editNotes').value;
+
+            saveData();
+            closeModal('editModal');
+            updateDisplay();
+        }
+
+        function renderTradeList() {
+            const container = document.getElementById('tradeList');
+            const label = document.getElementById('selectedDateLabel');
+            const trades = data.accounts[currentAccount];
+            const rate = data.settings.usdToZarRate;
+
+            // Show ALL trades sorted by date (newest first), not just last 10
+            let filtered = selectedDate ? trades.filter(t => t.date === selectedDate) : [...trades].sort((a, b) => new Date(b.date) - new Date(a.date));
+
+            label.textContent = selectedDate ? `Trades for ${selectedDate}` : `All Trades (${trades.length} total)`;
+
+            if (filtered.length === 0) {
+                container.innerHTML = '<div class="empty-state">No trades</div>';
+                return;
+            }
+
+            container.innerHTML = '';
+            filtered.forEach(trade => {
+                const zar = trade.resultUSD * rate;
+                const div = document.createElement('div');
+                div.className = 'trade-item' + (trade.partialClose ? ' partial-close' : '');
+
+                // Build partial close info
+                let partialBadge = '';
+                let remainingInfo = '';
+                if (trade.partialClose) {
+                    partialBadge = '<span class="partial-badge">TRIM</span>';
+                    if (trade.remainingLots !== undefined) {
+                        remainingInfo = `<span class="remaining-lots">→ ${trade.remainingLots.toFixed(2)} lots left</span>`;
+                    }
+                }
+
+                // Build quality badge
+                let qualityBadge = '';
+                if (trade.quality) {
+                    const qualityClass = trade.quality.toLowerCase().replace(/\s+/g, '-');
+                    const qualityText = trade.quality === 'Clean Win' ? '✅' : trade.quality === 'BE' ? '⚪ BE' : '❌';
+                    qualityBadge = `<span class="quality-badge ${qualityClass}">${qualityText}</span>`;
+                }
+
+                // Build manual close badge
+                let manualCloseBadge = '';
+                if (trade.manualClose) {
+                    manualCloseBadge = '<span class="manual-close-badge">🖐️ MANUAL</span>';
+                }
+
+                div.innerHTML = `
+                    <div class="trade-info">
+                        <div class="trade-pair">
+                            ${trade.pair} 
+                            <span class="direction-badge ${trade.direction.toLowerCase()}">${trade.direction}</span>
+                            ${qualityBadge}
+                            ${manualCloseBadge}
+                            ${partialBadge}
+                        </div>
+                        <div class="trade-meta">
+                            ${trade.date} 
+                            ${trade.lots ? '• ' + trade.lots + ' lots' : ''}
+                            ${remainingInfo}
+                            ${trade.entry ? '• Entry: $' + parseFloat(trade.entry).toFixed(2) : ''}
+                            ${trade.exit ? '→ Exit: $' + parseFloat(trade.exit).toFixed(2) : ''}
+                        </div>
+                    </div>
+                    <div class="trade-result">
+                        <div class="amount ${trade.resultUSD >= 0 ? 'profit' : 'loss'}">${trade.resultUSD >= 0 ? '+' : ''}$${trade.resultUSD.toFixed(2)}</div>
+                        <div class="zar">${zar >= 0 ? '+R' : '-R'}${Math.abs(zar).toFixed(2)}</div>
+                    </div>
+                    <div class="trade-actions">
+                        <button class="btn btn-small" onclick="editTrade('${trade.id}')">Edit</button>
+                        <button class="btn btn-danger btn-small" onclick="deleteTrade('${trade.id}')">Del</button>
+                    </div>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        function switchChart(type) {
+            currentChartType = type;
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            event.target.classList.add('active');
+            renderChart();
+        }
+
+        function renderChart() {
+            const ctx = document.getElementById('mainChart').getContext('2d');
+            const trades = getFilteredTrades();
+
+            if (currentChart) currentChart.destroy();
+            if (trades.length === 0) return;
+
+            const sorted = [...trades].sort((a, b) => new Date(a.date) - new Date(b.date));
+
+            if (currentChartType === 'equity') {
+                let equity = 0;
+                currentChart = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: sorted.map(t => t.date.slice(5)),
+                        datasets: [{
+                            data: sorted.map(t => { equity += t.resultUSD; return equity; }),
+                            borderColor: '#3b82f6',
+                            backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                            fill: true,
+                            tension: 0.4
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { display: false } },
+                        scales: {
+                            y: { grid: { color: '#334155' }, ticks: { color: '#94a3b8' } },
+                            x: { grid: { display: false }, ticks: { color: '#94a3b8' } }
+                        }
+                    }
+                });
+            } else if (currentChartType === 'daily') {
+                const daily = {};
+                sorted.forEach(t => { daily[t.date] = (daily[t.date] || 0) + t.resultUSD; });
+                const values = Object.values(daily);
+                currentChart = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: Object.keys(daily).map(d => d.slice(5)),
+                        datasets: [{
+                            data: values,
+                            backgroundColor: values.map(v => v >= 0 ? '#22c55e' : '#ef4444'),
+                            borderRadius: 4
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { display: false } },
+                        scales: {
+                            y: { grid: { color: '#334155' }, ticks: { color: '#94a3b8' } },
+                            x: { grid: { display: false }, ticks: { color: '#94a3b8' } }
+                        }
+                    }
+                });
+            } else if (currentChartType === 'winloss') {
+                const wins = trades.filter(t => t.resultUSD > 0).length;
+                const losses = trades.filter(t => t.resultUSD < 0).length;
+                const breakeven = trades.filter(t => t.resultUSD === 0).length;
+
+                currentChart = new Chart(ctx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['Wins', 'Losses', 'Breakeven'],
+                        datasets: [{
+                            data: [wins, losses, breakeven],
+                            backgroundColor: ['#22c55e', '#ef4444', '#64748b'],
+                            borderWidth: 0
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { position: 'right', labels: { color: '#f8fafc' } } }
+                    }
+                });
+            }
+        }
+
+        async function fetchExchangeRate() {
+            try {
+                const response = await fetch('https://api.exchangerate-api.com/v4/latest/USD');
+                const apiData = await response.json();
+                const rate = apiData.rates.ZAR;
+                data.settings.usdToZarRate = rate;
+                data.settings.lastUpdated = new Date().toISOString().split('T')[0];
+                saveData();
+                document.getElementById('exchangeRate').value = rate.toFixed(2);
+                document.getElementById('rateLastUpdated').textContent = data.settings.lastUpdated;
+                updateDisplay();
+                alert(`Rate updated: 1 USD = ${rate.toFixed(2)} ZAR`);
+            } catch (error) {
+                alert('Failed to fetch rate');
+            }
+        }
+
+        document.getElementById('exchangeRate').addEventListener('change', (e) => {
+            data.settings.usdToZarRate = parseFloat(e.target.value);
+            data.settings.lastUpdated = new Date().toISOString().split('T')[0];
+            saveData();
+            document.getElementById('rateLastUpdated').textContent = data.settings.lastUpdated;
+            updateDisplay();
+        });
+
+        function exportData() {
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `trading-journal-${new Date().toISOString().split('T')[0]}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        function exportCSV() {
+            const trades = data.accounts[currentAccount];
+            if (trades.length === 0) {
+                alert('No trades to export');
+                return;
+            }
+
+            // CSV Header - added Partial Close columns
+            const headers = ['Date', 'Time', 'Type', 'Lot', 'P/L ($)', 'Pair', 'Entry', 'Exit', 'Partial Close', 'Remaining Lots', 'Notes'];
+
+            // Convert trades to CSV rows
+            const rows = trades.map(trade => {
+                const date = trade.date;
+                const time = trade.notes || '';
+                const type = trade.direction;
+                const lot = trade.lots || '';
+                const pl = trade.resultUSD;
+                const pair = trade.pair;
+                const entry = trade.entry || '';
+                const exit = trade.exit || '';
+                const partialClose = trade.partialClose ? 'YES' : 'NO';
+                const remainingLots = trade.remainingLots !== undefined ? trade.remainingLots : '';
+                const notes = trade.partialClose ? 'Partial close (trim)' : '';
+
+                return [date, time, type, lot, pl, pair, entry, exit, partialClose, remainingLots, notes].map(field => 
+                    `"${String(field).replace(/"/g, '""')}"`
+                ).join(',');
+            });
+
+            const csv = [headers.join(','), ...rows].join('\n');
+
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `${currentAccount.replace(/\s+/g, '_')}_trades_${new Date().toISOString().split('T')[0]}.csv`;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        function importData(input) {
+            const file = input.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    if (confirm('Overwrite current data?')) {
+                        data = JSON.parse(e.target.result);
+                        ['Main Account', 'Small Account', 'Challenge Account'].forEach(acc => {
+                            if (!data.accounts[acc]) data.accounts[acc] = [];
+                        });
+                        saveData();
+                        location.reload();
+                    }
+                } catch { alert('Invalid file'); }
+            };
+            reader.readAsText(file);
+        }
+
+        function resetData() {
+            if (!confirm('Delete ALL data?')) return;
+            if (!confirm('Are you sure?')) return;
+            localStorage.removeItem('tradingJournal');
+            location.reload();
+        }
+
+        function openModal(id) {
+            document.getElementById(id).classList.add('active');
+            if (id === 'settingsModal') updateAccountList();
+        }
+
+        function closeModal(id) {
+            document.getElementById(id).classList.remove('active');
+        }
+
+        function scrollToSection(id) {
+            document.getElementById(id).scrollIntoView({ behavior: 'smooth' });
+        }
+
+        document.querySelectorAll('.modal').forEach(modal => {
+            modal.addEventListener('click', (e) => { if (e.target === modal) modal.classList.remove('active'); });
+        });
+    </script>
+</body>
+</html>
