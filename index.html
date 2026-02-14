@@ -6,7 +6,7 @@
     <meta name="theme-color" content="#0f172a">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <title>Trading Journal v0.18</title>
+    <title>Trading Journal v0.21</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         * {
@@ -134,6 +134,164 @@
 
         .main-pnl-value.loss {
             color: var(--loss);
+        }
+
+        /* Dashboard Cards Row */
+        .dashboard-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .dashboard-card {
+            background: var(--bg-secondary);
+            border-radius: 16px;
+            padding: 18px;
+            border: 1px solid var(--border);
+        }
+
+        .dashboard-card .card-label {
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+            margin-bottom: 10px;
+            display: block;
+        }
+
+        .dashboard-card .card-value {
+            font-size: 2rem;
+            font-weight: 700;
+        }
+
+        .dashboard-card .card-value.profit {
+            color: var(--profit);
+        }
+
+        .dashboard-card .card-value.loss {
+            color: var(--loss);
+        }
+
+        .goal-card .card-header-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .goal-card .icon-btn-small {
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--text-primary);
+            width: 28px;
+            height: 28px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 0.9rem;
+            padding: 0;
+        }
+
+        .goal-card .goal-progress-container {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .goal-card .goal-progress-bar {
+            width: 100%;
+            height: 32px;
+            background: var(--bg-card);
+            border-radius: 8px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .goal-card .goal-progress-fill {
+            height: 100%;
+            background: var(--profit);
+            transition: width 0.5s ease-out;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 0%;
+        }
+
+        .goal-card .goal-progress-text {
+            color: white;
+            font-weight: 700;
+            font-size: 0.875rem;
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 1;
+        }
+
+        .goal-card .goal-amounts-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.875rem;
+            font-weight: 600;
+        }
+
+        .goal-card .goal-current {
+            color: var(--profit);
+        }
+
+        .goal-card .goal-target {
+            color: var(--text-secondary);
+        }
+
+        .goal-card .goal-amounts {
+            display: flex;
+            gap: 8px;
+            align-items: baseline;
+        }
+
+        .goal-card .current-amount {
+            background: var(--profit);
+            color: white;
+            padding: 6px 12px;
+            border-radius: 8px;
+            font-weight: 700;
+            font-size: 0.95rem;
+        }
+
+        .goal-card .target-amount {
+            color: var(--profit);
+            font-weight: 700;
+            font-size: 0.95rem;
+        }
+
+        /* Account Selector Bar */
+        .account-selector-bar {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            margin-bottom: 20px;
+            background: var(--bg-secondary);
+            padding: 12px 20px;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+        }
+
+        .account-selector-bar select {
+            background: transparent;
+            border: none;
+            color: var(--text-primary);
+            font-weight: 600;
+            font-size: 1rem;
+            cursor: pointer;
+            text-align: center;
+            outline: none;
+            flex: 1;
+        }
+
+        .account-selector-bar .dropdown-arrow {
+            color: var(--text-secondary);
+            font-size: 0.8rem;
         }
 
         /* Challenge Goal Progress */
@@ -896,9 +1054,10 @@
         <!-- Mobile Header -->
         <div class="mobile-header">
             <div>
-                <h1>📊 Trading Journal <span class="version">v0.14</span></h1>
+                <h1>📊 Trading Journal <span class="version">v0.21</span></h1>
             </div>
             <div class="header-actions">
+                <a href="https://russ-bytes.github.io/STS-Signal/" target="_blank" class="icon-btn" title="PIP Calculator">🧮</a>
                 <button class="icon-btn" onclick="openModal('settingsModal')">⚙️</button>
             </div>
         </div>
@@ -908,34 +1067,7 @@
             <button class="period-btn" onclick="setPeriod('week')">Week</button>
             <button class="period-btn active" onclick="setPeriod('month')">Month</button>
             <button class="period-btn" onclick="setPeriod('year')">Year</button>
-            <button class="period-btn" onclick="setPeriod('all')">All</button>
-        </div>
-
-        <!-- Main P&L Display -->
-        <div class="main-pnl">
-            <div class="main-pnl-label">Total P&L</div>
-            <div class="main-pnl-value profit" id="mainPnL">+$0.00</div>
-        </div>
-
-        <!-- Challenge Goal Progress -->
-        <div class="goal-container">
-            <div class="goal-header">
-                <span class="goal-label">Challenge Goal</span>
-                <span class="goal-values">
-                    <span id="currentGoalProgress">$0</span> / 
-                    <span id="goalTarget">$10,000</span>
-                </span>
-            </div>
-            <div class="goal-bar-bg">
-                <div class="goal-bar-fill" id="goalBar" style="width: 0%;"></div>
-            </div>
-            <div class="goal-percentage" id="goalPercentage">0% achieved</div>
-        </div>
-
-        <!-- Account Selector -->
-        <div class="account-dropdown">
-            <select id="accountSelect" onchange="changeAccount()"></select>
-            <span>▼</span>
+            <button class="period-btn" onclick="setPeriod('all')">All time</button>
         </div>
 
         <!-- Calendar Navigation -->
@@ -943,6 +1075,40 @@
             <button onclick="changeMonth(-1)">‹</button>
             <h3 id="currentMonthDisplay">February 2026</h3>
             <button onclick="changeMonth(1)">›</button>
+        </div>
+
+        <!-- Dashboard Cards Row -->
+        <div class="dashboard-row">
+            <!-- Total P&L Card -->
+            <div class="dashboard-card pnl-card">
+                <div class="card-label">Total P&L</div>
+                <div class="card-value profit" id="mainPnL">$0.00</div>
+            </div>
+
+            <!-- Monthly Goal Card -->
+            <div class="dashboard-card goal-card">
+                <div class="card-header-row">
+                    <span class="card-label">Monthly goal</span>
+                    <button class="icon-btn-small" onclick="openModal('goalModal')">✏️</button>
+                </div>
+                <div class="goal-progress-container">
+                    <div class="goal-progress-bar">
+                        <div class="goal-progress-fill" id="goalProgressBar">
+                            <span class="goal-progress-text" id="goalProgressText">0%</span>
+                        </div>
+                    </div>
+                    <div class="goal-amounts-row">
+                        <span class="goal-current" id="currentGoalProgress">$0</span>
+                        <span class="goal-target" id="goalTarget">$10000</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Account Selector -->
+        <div class="account-selector-bar">
+            <select id="accountSelect" onchange="changeAccount()"></select>
+            <span class="dropdown-arrow">▼</span>
         </div>
 
         <!-- Calendar -->
@@ -1127,11 +1293,13 @@
 
         <!-- Changelog -->
         <div class="changelog">
-            <h4>📝 Changelog v0.18</h4>
+            <h4>📝 Changelog v0.21</h4>
             <ul>
-                <li>Added Manual Close checkbox for tracking manually closed trades</li>
-                <li>Added Partial Close checkbox to both Add and Edit forms</li>
-                <li>Manual close trades now display with 🖐️ MANUAL badge</li>
+                <li>Added PIP Calculator button (🧮) linking to your custom calculator</li>
+                <li>External trade data loading from /data/database.md file</li>
+                <li>Markdown table format for easy trade management</li>
+                <li>GitHub-friendly setup with auto-loading trades</li>
+                <li>Edit trades directly in GitHub and auto-refresh</li>
             </ul>
         </div>
     </div>
@@ -1285,6 +1453,25 @@
         </div>
     </div>
 
+    <!-- Goal Settings Modal -->
+    <div class="modal" id="goalModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>🎯 Monthly Goal</h2>
+                <button class="close-btn" onclick="closeModal('goalModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form onsubmit="saveGoal(event)">
+                    <div class="form-group">
+                        <label>Monthly Target (USD)</label>
+                        <input type="number" id="monthlyGoalInput" step="100" placeholder="10000" required>
+                    </div>
+                    <button type="submit" class="btn btn-success">Save Goal</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
     <script>
         // Challenge Account Trades - Complete data from Vault Funded dashboard
         const defaultChallengeTrades = [
@@ -1317,7 +1504,8 @@
             settings: { 
                 usdToZarRate: 18.50, 
                 lastUpdated: new Date().toISOString().split('T')[0],
-                challengeGoal: 10000
+                challengeGoal: 10000,
+                monthlyGoal: 10000
             },
             accounts: {
                 'Main Account': [],
@@ -1335,6 +1523,7 @@
 
         document.addEventListener('DOMContentLoaded', () => {
             loadData();
+            loadExternalTrades(); // Load trades from external file
             initAccountSelector();
             document.getElementById('tradeDate').value = new Date().toISOString().split('T')[0];
             document.getElementById('exchangeRate').value = data.settings.usdToZarRate;
@@ -1342,6 +1531,77 @@
             document.getElementById('challengeGoal').value = data.settings.challengeGoal || 10000;
             updateDisplay();
         });
+
+        async function loadExternalTrades() {
+            try {
+                // Try to load trades from external markdown file
+                const response = await fetch('./data/database.md');
+                if (!response.ok) {
+                    console.log('No external trade file found, using default trades');
+                    return;
+                }
+                
+                const text = await response.text();
+                const trades = parseTradesFromMarkdown(text);
+                
+                if (trades.length > 0) {
+                    // Replace Challenge Account trades with external data
+                    data.accounts['Challenge Account'] = trades;
+                    saveData();
+                    updateDisplay();
+                    console.log(`Loaded ${trades.length} trades from external file`);
+                }
+            } catch (error) {
+                console.log('Error loading external trades:', error.message);
+            }
+        }
+
+        function parseTradesFromMarkdown(text) {
+            const trades = [];
+            const lines = text.split('\n');
+            let inTradeSection = false;
+            
+            for (let i = 0; i < lines.length; i++) {
+                const line = lines[i].trim();
+                
+                // Skip empty lines and headers
+                if (!line || line.startsWith('#')) continue;
+                
+                // Check if this is a table separator
+                if (line.startsWith('|---') || line.startsWith('| ---')) {
+                    inTradeSection = true;
+                    continue;
+                }
+                
+                // Parse trade data rows
+                if (inTradeSection && line.startsWith('|')) {
+                    const parts = line.split('|').map(p => p.trim()).filter(p => p);
+                    
+                    // Expected format: | Date | Pair | Direction | Result | Entry | Exit | Lots | Quality | Manual | Notes |
+                    if (parts.length >= 4) {
+                        const trade = {
+                            id: 'ext_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9),
+                            date: parts[0] || '',
+                            pair: parts[1] || 'XAUUSD',
+                            direction: (parts[2] || 'BUY').toUpperCase(),
+                            resultUSD: parseFloat(parts[3]) || 0,
+                            entry: parts[4] ? parseFloat(parts[4]) : null,
+                            exit: parts[5] ? parseFloat(parts[5]) : null,
+                            lots: parts[6] ? parseFloat(parts[6]) : null,
+                            quality: parts[7] || '',
+                            manualClose: parts[8] === 'YES' || parts[8] === 'true',
+                            notes: parts[9] || ''
+                        };
+                        
+                        if (trade.date) {
+                            trades.push(trade);
+                        }
+                    }
+                }
+            }
+            
+            return trades;
+        }
 
         function loadData() {
             const saved = localStorage.getItem('tradingJournal');
@@ -1552,8 +1812,17 @@
             const trades = getFilteredTrades();
             const totalUSD = trades.reduce((sum, t) => sum + t.resultUSD, 0);
             const mainPnL = document.getElementById('mainPnL');
-            mainPnL.textContent = (totalUSD >= 0 ? '+$' : '-$') + Math.abs(totalUSD).toFixed(2);
-            mainPnL.className = 'main-pnl-value ' + (totalUSD >= 0 ? 'profit' : 'loss');
+            mainPnL.textContent = (totalUSD >= 0 ? '$' : '-$') + Math.abs(totalUSD).toFixed(2);
+            mainPnL.className = 'card-value ' + (totalUSD >= 0 ? 'profit' : 'loss');
+
+            // Update monthly goal display with progress bar
+            const monthlyGoal = data.settings.monthlyGoal || 10000;
+            const percentage = Math.min(Math.max((totalUSD / monthlyGoal) * 100, 0), 100);
+            
+            document.getElementById('currentGoalProgress').textContent = '$' + Math.abs(totalUSD).toFixed(2);
+            document.getElementById('goalTarget').textContent = '$' + monthlyGoal.toFixed(2);
+            document.getElementById('goalProgressBar').style.width = percentage + '%';
+            document.getElementById('goalProgressText').textContent = Math.round(percentage) + '%';
         }
 
         function updateDetailedStats() {
@@ -1958,10 +2227,22 @@
         function openModal(id) {
             document.getElementById(id).classList.add('active');
             if (id === 'settingsModal') updateAccountList();
+            if (id === 'goalModal') {
+                document.getElementById('monthlyGoalInput').value = data.settings.monthlyGoal || 10000;
+            }
         }
 
         function closeModal(id) {
             document.getElementById(id).classList.remove('active');
+        }
+
+        function saveGoal(e) {
+            e.preventDefault();
+            const goal = parseFloat(document.getElementById('monthlyGoalInput').value);
+            data.settings.monthlyGoal = goal;
+            saveData();
+            updateStats();
+            closeModal('goalModal');
         }
 
         function scrollToSection(id) {
