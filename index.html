@@ -6,7 +6,7 @@
     <meta name="theme-color" content="#0f172a">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <title>Trading Journal v0.22</title>
+    <title>Trading Journal v0.23</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         * {
@@ -1054,7 +1054,7 @@
         <!-- Mobile Header -->
         <div class="mobile-header">
             <div>
-                <h1>📊 Trading Journal <span class="version">v0.22</span></h1>
+                <h1>📊 Trading Journal <span class="version">v0.23</span></h1>
             </div>
             <div class="header-actions">
                 <a href="https://russ-bytes.github.io/STS-Signal/" target="_blank" class="icon-btn" title="PIP Calculator">🧮</a>
@@ -1293,13 +1293,14 @@
 
         <!-- Changelog -->
         <div class="changelog">
-            <h4>📝 Changelog v0.22</h4>
+            <h4>📝 Changelog v0.23</h4>
             <ul>
-                <li>Removed default trades from HTML</li>
-                <li>All trades now loaded exclusively from /data/database.md</li>
-                <li>Added "Save to database.md" button in settings</li>
-                <li>Web-added trades can now be exported to database.md format</li>
-                <li>Clean separation between code and data</li>
+                <li>🔄 Switched from Markdown to JSON database format</li>
+                <li>✅ Proper data types (numbers, booleans, structured objects)</li>
+                <li>✅ Easier validation and error detection</li>
+                <li>✅ More flexible for future features</li>
+                <li>✅ Clean separation of settings and account data</li>
+                <li>💾 Updated "Save to database.json" export function</li>
             </ul>
         </div>
     </div>
@@ -1353,7 +1354,7 @@
                 </div>
 
                 <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-                    <button class="btn btn-success" onclick="exportToMarkdown()">💾 Save to database.md</button>
+                    <button class="btn btn-success" onclick="exportToJSON()">💾 Save to database.json</button>
                     <button class="btn" onclick="exportData()">📥 JSON Backup</button>
                     <button class="btn" onclick="exportCSV()">📄 Export CSV</button>
                     <label class="btn" style="cursor: pointer; text-align: center;">
@@ -1511,73 +1512,35 @@
 
         async function loadExternalTrades() {
             try {
-                // Try to load trades from external markdown file
-                const response = await fetch('./data/database.md');
+                // Try to load trades from external JSON file
+                const response = await fetch('./data/database.json');
                 if (!response.ok) {
-                    console.log('No external trade file found, using default trades');
+                    console.log('No external trade file found, using localStorage');
                     return;
                 }
                 
-                const text = await response.text();
-                const trades = parseTradesFromMarkdown(text);
+                const jsonData = await response.json();
                 
-                if (trades.length > 0) {
-                    // Replace Challenge Account trades with external data
-                    data.accounts['Challenge Account'] = trades;
-                    saveData();
-                    updateDisplay();
-                    console.log(`Loaded ${trades.length} trades from external file`);
+                // Load trades for each account
+                if (jsonData.accounts) {
+                    Object.keys(jsonData.accounts).forEach(accountName => {
+                        if (jsonData.accounts[accountName]) {
+                            data.accounts[accountName] = jsonData.accounts[accountName];
+                        }
+                    });
                 }
+                
+                // Load settings if present
+                if (jsonData.settings) {
+                    data.settings = { ...data.settings, ...jsonData.settings };
+                }
+                
+                saveData();
+                updateDisplay();
+                console.log('Loaded trades from external JSON file');
             } catch (error) {
                 console.log('Error loading external trades:', error.message);
             }
-        }
-
-        function parseTradesFromMarkdown(text) {
-            const trades = [];
-            const lines = text.split('\n');
-            let inTradeSection = false;
-            
-            for (let i = 0; i < lines.length; i++) {
-                const line = lines[i].trim();
-                
-                // Skip empty lines and headers
-                if (!line || line.startsWith('#')) continue;
-                
-                // Check if this is a table separator
-                if (line.startsWith('|---') || line.startsWith('| ---')) {
-                    inTradeSection = true;
-                    continue;
-                }
-                
-                // Parse trade data rows
-                if (inTradeSection && line.startsWith('|')) {
-                    const parts = line.split('|').map(p => p.trim()).filter(p => p);
-                    
-                    // Expected format: | Date | Pair | Direction | Result | Entry | Exit | Lots | Quality | Manual | Notes |
-                    if (parts.length >= 4) {
-                        const trade = {
-                            id: 'ext_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9),
-                            date: parts[0] || '',
-                            pair: parts[1] || 'XAUUSD',
-                            direction: (parts[2] || 'BUY').toUpperCase(),
-                            resultUSD: parseFloat(parts[3]) || 0,
-                            entry: parts[4] ? parseFloat(parts[4]) : null,
-                            exit: parts[5] ? parseFloat(parts[5]) : null,
-                            lots: parts[6] ? parseFloat(parts[6]) : null,
-                            quality: parts[7] || '',
-                            manualClose: parts[8] === 'YES' || parts[8] === 'true',
-                            notes: parts[9] || ''
-                        };
-                        
-                        if (trade.date) {
-                            trades.push(trade);
-                        }
-                    }
-                }
-            }
-            
-            return trades;
         }
 
         function loadData() {
@@ -2173,78 +2136,28 @@
             URL.revokeObjectURL(url);
         }
 
-        function exportToMarkdown() {
-            const trades = data.accounts['Challenge Account'];
-            if (trades.length === 0) {
-                alert('No trades to export');
-                return;
-            }
+        function exportToJSON() {
+            // Create clean export data
+            const exportData = {
+                settings: data.settings,
+                accounts: data.accounts,
+                exportDate: new Date().toISOString(),
+                version: "0.23"
+            };
 
-            // Sort trades by date (newest first)
-            const sortedTrades = [...trades].sort((a, b) => new Date(b.date) - new Date(a.date));
-
-            // Create markdown content
-            let markdown = `# Trading Journal Database
-
-This file contains all your trades. The journal will automatically read this file on startup.
-
-## Trade Format
-
-| Date | Pair | Direction | Result | Entry | Exit | Lots | Quality | Manual | Notes |
-|------|------|-----------|--------|-------|------|------|---------|--------|-------|
-`;
-
-            // Add each trade as a row
-            sortedTrades.forEach(trade => {
-                const date = trade.date || '';
-                const pair = trade.pair || 'XAUUSD';
-                const direction = trade.direction || 'BUY';
-                const result = trade.resultUSD || 0;
-                const entry = trade.entry || '';
-                const exit = trade.exit || '';
-                const lots = trade.lots || '';
-                const quality = trade.quality || '';
-                const manual = trade.manualClose ? 'YES' : 'NO';
-                const notes = trade.notes || '';
-
-                markdown += `| ${date} | ${pair} | ${direction} | ${result} | ${entry} | ${exit} | ${lots} | ${quality} | ${manual} | ${notes} |\n`;
-            });
-
-            // Add instructions
-            markdown += `
-## Field Descriptions
-
-- **Date**: Trade date in YYYY-MM-DD format
-- **Pair**: Trading pair (e.g., XAUUSD, EURUSD)
-- **Direction**: BUY or SELL
-- **Result**: P&L in USD (positive or negative)
-- **Entry**: Entry price
-- **Exit**: Exit price
-- **Lots**: Position size
-- **Quality**: Trade quality (Clean Win, BE, Loss, or empty)
-- **Manual**: YES if manually closed, NO otherwise
-- **Notes**: Any additional notes or timestamps
-
-## How to Add New Trades
-
-Simply add a new row to the table above following the same format. The journal will automatically load the trades when you refresh the page.
-
-Example:
-\`\`\`
-| 2026-02-15 | XAUUSD | BUY | 45.50 | 5100.00 | 5145.50 | 0.02 | Clean Win | NO | Morning session |
-\`\`\`
-`;
+            // Convert to JSON with pretty formatting
+            const jsonString = JSON.stringify(exportData, null, 2);
 
             // Download the file
-            const blob = new Blob([markdown], { type: 'text/markdown' });
+            const blob = new Blob([jsonString], { type: 'application/json' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = 'database.md';
+            a.download = 'database.json';
             a.click();
             URL.revokeObjectURL(url);
 
-            alert('database.md file downloaded! Place it in the /data folder of your project.');
+            alert('database.json file downloaded! Place it in the /data folder of your project.');
         }
 
         function importData(input) {
