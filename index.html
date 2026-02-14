@@ -6,7 +6,7 @@
     <meta name="theme-color" content="#0f172a">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <title>Trading Journal v0.21</title>
+    <title>Trading Journal v0.22</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         * {
@@ -1054,7 +1054,7 @@
         <!-- Mobile Header -->
         <div class="mobile-header">
             <div>
-                <h1>📊 Trading Journal <span class="version">v0.21</span></h1>
+                <h1>📊 Trading Journal <span class="version">v0.22</span></h1>
             </div>
             <div class="header-actions">
                 <a href="https://russ-bytes.github.io/STS-Signal/" target="_blank" class="icon-btn" title="PIP Calculator">🧮</a>
@@ -1293,13 +1293,13 @@
 
         <!-- Changelog -->
         <div class="changelog">
-            <h4>📝 Changelog v0.21</h4>
+            <h4>📝 Changelog v0.22</h4>
             <ul>
-                <li>Added PIP Calculator button (🧮) linking to your custom calculator</li>
-                <li>External trade data loading from /data/database.md file</li>
-                <li>Markdown table format for easy trade management</li>
-                <li>GitHub-friendly setup with auto-loading trades</li>
-                <li>Edit trades directly in GitHub and auto-refresh</li>
+                <li>Removed default trades from HTML</li>
+                <li>All trades now loaded exclusively from /data/database.md</li>
+                <li>Added "Save to database.md" button in settings</li>
+                <li>Web-added trades can now be exported to database.md format</li>
+                <li>Clean separation between code and data</li>
             </ul>
         </div>
     </div>
@@ -1353,6 +1353,7 @@
                 </div>
 
                 <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                    <button class="btn btn-success" onclick="exportToMarkdown()">💾 Save to database.md</button>
                     <button class="btn" onclick="exportData()">📥 JSON Backup</button>
                     <button class="btn" onclick="exportCSV()">📄 Export CSV</button>
                     <label class="btn" style="cursor: pointer; text-align: center;">
@@ -1473,32 +1474,8 @@
     </div>
 
     <script>
-        // Challenge Account Trades - Complete data from Vault Funded dashboard
-        const defaultChallengeTrades = [
-            // Page 1 trades (from image 3)
-            { id: "c001", date: "2026-02-10", pair: "XAUUSD", direction: "SELL", resultUSD: -7.59, entry: 5043.85, exit: 5046.38, lots: 0.03, notes: "13:17-13:20" },
-            { id: "c002", date: "2026-02-09", pair: "XAUUSD", direction: "BUY", resultUSD: 39.78, entry: 4982.81, exit: 4996.07, lots: 0.03, notes: "10:30-10:46" },
-            { id: "c003", date: "2026-02-09", pair: "XAUUSD", direction: "SELL", resultUSD: 7.64, entry: 5032.54, exit: 5028.72, lots: 0.02, notes: "08:48" },
-            { id: "c004", date: "2026-02-09", pair: "XAUUSD", direction: "SELL", resultUSD: -3.76, entry: 5031.78, exit: 5033.66, lots: 0.02, notes: "08:46-08:48" },
-            { id: "c005", date: "2026-02-06", pair: "XAUUSD", direction: "SELL", resultUSD: 30.26, entry: 4933.17, exit: 4918.04, lots: 0.02, notes: "13:38-14:08" },
-            { id: "c006", date: "2026-02-04", pair: "XAUUSD", direction: "BUY", resultUSD: -0.58, entry: 5049.30, exit: 5049.01, lots: 0.02, notes: "09:32-09:33" },
-            { id: "c007", date: "2026-02-02", pair: "XAUUSD", direction: "SELL", resultUSD: -50.14, entry: 4749.93, exit: 4775.00, lots: 0.02, notes: "11:15-11:40" },
-            { id: "c008", date: "2026-02-02", pair: "XAUUSD", direction: "SELL", resultUSD: -2.65, entry: 4645.35, exit: 4648.00, lots: 0.01, notes: "09:14-09:17" },
-            { id: "c009", date: "2026-02-02", pair: "XAUUSD", direction: "SELL", resultUSD: 25.32, entry: 4639.03, exit: 4630.59, lots: 0.03, notes: "08:21-08:39" },
-            { id: "c010", date: "2026-01-27", pair: "XAUUSD", direction: "BUY", resultUSD: 86.90, entry: 5067.15, exit: 5084.53, lots: 0.05, notes: "11:52-13:11" },
-            
-            // Page 2 trades (from image 4)
-            { id: "c011", date: "2026-02-13", pair: "XAUUSD", direction: "BUY", resultUSD: 27.70, entry: 4939.10, exit: 4966.80, lots: 0.01, notes: "11:24-12:16" },
-            { id: "c012", date: "2026-02-13", pair: "XAUUSD", direction: "BUY", resultUSD: 17.45, entry: 4939.10, exit: 4956.55, lots: 0.01, notes: "11:24-12:01" },
-            { id: "c013", date: "2026-02-12", pair: "XAUUSD", direction: "BUY", resultUSD: 5.14, entry: 5039.96, exit: 5045.10, lots: 0.01, notes: "14:57-16:10" },
-            { id: "c014", date: "2026-02-12", pair: "XAUUSD", direction: "BUY", resultUSD: 27.26, entry: 5039.96, exit: 5067.22, lots: 0.01, notes: "14:57-15:18" },
-            { id: "c015", date: "2026-02-12", pair: "XAUUSD", direction: "BUY", resultUSD: 26.21, entry: 5039.96, exit: 5066.17, lots: 0.01, notes: "14:57-15:19" },
-            { id: "c016", date: "2026-02-12", pair: "XAUUSD", direction: "BUY", resultUSD: 34.95, entry: 5039.96, exit: 5051.61, lots: 0.03, notes: "14:57-15:04" },
-            { id: "c017", date: "2026-02-11", pair: "XAUUSD", direction: "BUY", resultUSD: -25.08, entry: 5028.48, exit: 5024.30, lots: 0.06, notes: "13:30" },
-            { id: "c018", date: "2026-02-11", pair: "XAUUSD", direction: "SELL", resultUSD: 19.74, entry: 5067.73, exit: 5057.86, lots: 0.02, notes: "07:11-07:27" },
-            { id: "c019", date: "2026-02-11", pair: "XAUUSD", direction: "SELL", resultUSD: 8.20, entry: 5067.73, exit: 5059.53, lots: 0.01, notes: "07:11-07:19" },
-            { id: "c020", date: "2026-02-10", pair: "XAUUSD", direction: "SELL", resultUSD: -4.74, entry: 5042.87, exit: 5044.45, lots: 0.03, notes: "13:23-13:30" }
-        ];
+        // No default trades - all trades will be loaded from /data/database.md
+        const defaultChallengeTrades = [];
 
         let data = {
             settings: { 
@@ -1612,9 +1589,7 @@
                 ['Main Account', 'Small Account', 'Challenge Account'].forEach(acc => {
                     if (!data.accounts[acc]) data.accounts[acc] = [];
                 });
-                if (data.accounts['Challenge Account'].length === 0) {
-                    data.accounts['Challenge Account'] = [...defaultChallengeTrades];
-                }
+                // Don't use defaultChallengeTrades - trades will be loaded from database.md
             }
         }
 
@@ -2196,6 +2171,80 @@
             a.download = `${currentAccount.replace(/\s+/g, '_')}_trades_${new Date().toISOString().split('T')[0]}.csv`;
             a.click();
             URL.revokeObjectURL(url);
+        }
+
+        function exportToMarkdown() {
+            const trades = data.accounts['Challenge Account'];
+            if (trades.length === 0) {
+                alert('No trades to export');
+                return;
+            }
+
+            // Sort trades by date (newest first)
+            const sortedTrades = [...trades].sort((a, b) => new Date(b.date) - new Date(a.date));
+
+            // Create markdown content
+            let markdown = `# Trading Journal Database
+
+This file contains all your trades. The journal will automatically read this file on startup.
+
+## Trade Format
+
+| Date | Pair | Direction | Result | Entry | Exit | Lots | Quality | Manual | Notes |
+|------|------|-----------|--------|-------|------|------|---------|--------|-------|
+`;
+
+            // Add each trade as a row
+            sortedTrades.forEach(trade => {
+                const date = trade.date || '';
+                const pair = trade.pair || 'XAUUSD';
+                const direction = trade.direction || 'BUY';
+                const result = trade.resultUSD || 0;
+                const entry = trade.entry || '';
+                const exit = trade.exit || '';
+                const lots = trade.lots || '';
+                const quality = trade.quality || '';
+                const manual = trade.manualClose ? 'YES' : 'NO';
+                const notes = trade.notes || '';
+
+                markdown += `| ${date} | ${pair} | ${direction} | ${result} | ${entry} | ${exit} | ${lots} | ${quality} | ${manual} | ${notes} |\n`;
+            });
+
+            // Add instructions
+            markdown += `
+## Field Descriptions
+
+- **Date**: Trade date in YYYY-MM-DD format
+- **Pair**: Trading pair (e.g., XAUUSD, EURUSD)
+- **Direction**: BUY or SELL
+- **Result**: P&L in USD (positive or negative)
+- **Entry**: Entry price
+- **Exit**: Exit price
+- **Lots**: Position size
+- **Quality**: Trade quality (Clean Win, BE, Loss, or empty)
+- **Manual**: YES if manually closed, NO otherwise
+- **Notes**: Any additional notes or timestamps
+
+## How to Add New Trades
+
+Simply add a new row to the table above following the same format. The journal will automatically load the trades when you refresh the page.
+
+Example:
+\`\`\`
+| 2026-02-15 | XAUUSD | BUY | 45.50 | 5100.00 | 5145.50 | 0.02 | Clean Win | NO | Morning session |
+\`\`\`
+`;
+
+            // Download the file
+            const blob = new Blob([markdown], { type: 'text/markdown' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'database.md';
+            a.click();
+            URL.revokeObjectURL(url);
+
+            alert('database.md file downloaded! Place it in the /data folder of your project.');
         }
 
         function importData(input) {
