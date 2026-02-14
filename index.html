@@ -6,7 +6,7 @@
     <meta name="theme-color" content="#0f172a">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <title>Trading Journal v0.23</title>
+    <title>Trading Journal v0.25</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         * {
@@ -1046,6 +1046,29 @@
             background: var(--border);
             border-radius: 3px;
         }
+
+        /* Notification Animations */
+        @keyframes slideIn {
+            from {
+                transform: translateX(400px);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        @keyframes slideOut {
+            from {
+                transform: translateX(0);
+                opacity: 1;
+            }
+            to {
+                transform: translateX(400px);
+                opacity: 0;
+            }
+        }
     </style>
 <base target="_blank">
 </head>
@@ -1054,7 +1077,7 @@
         <!-- Mobile Header -->
         <div class="mobile-header">
             <div>
-                <h1>📊 Trading Journal <span class="version">v0.23</span></h1>
+                <h1>📊 Trading Journal <span class="version">v0.25</span></h1>
             </div>
             <div class="header-actions">
                 <a href="https://russ-bytes.github.io/STS-Signal/" target="_blank" class="icon-btn" title="PIP Calculator">🧮</a>
@@ -1064,7 +1087,6 @@
 
         <!-- Period Selector -->
         <div class="period-selector">
-            <button class="period-btn" onclick="setPeriod('week')">Week</button>
             <button class="period-btn active" onclick="setPeriod('month')">Month</button>
             <button class="period-btn" onclick="setPeriod('year')">Year</button>
             <button class="period-btn" onclick="setPeriod('all')">All time</button>
@@ -1085,10 +1107,10 @@
                 <div class="card-value profit" id="mainPnL">$0.00</div>
             </div>
 
-            <!-- Monthly Goal Card -->
+            <!-- Challenge Goal Card -->
             <div class="dashboard-card goal-card">
                 <div class="card-header-row">
-                    <span class="card-label">Monthly goal</span>
+                    <span class="card-label">Challenge Goal</span>
                     <button class="icon-btn-small" onclick="openModal('goalModal')">✏️</button>
                 </div>
                 <div class="goal-progress-container">
@@ -1293,14 +1315,14 @@
 
         <!-- Changelog -->
         <div class="changelog">
-            <h4>📝 Changelog v0.23</h4>
+            <h4>📝 Changelog v0.25</h4>
             <ul>
-                <li>🔄 Switched from Markdown to JSON database format</li>
-                <li>✅ Proper data types (numbers, booleans, structured objects)</li>
-                <li>✅ Easier validation and error detection</li>
-                <li>✅ More flexible for future features</li>
-                <li>✅ Clean separation of settings and account data</li>
-                <li>💾 Updated "Save to database.json" export function</li>
+                <li>❌ Removed "Week" period selector</li>
+                <li>🎯 Changed "Monthly Goal" to "Challenge Goal"</li>
+                <li>📊 Added Account Base Amount setting for percentage calculations</li>
+                <li>✅ Fixed P&L calculations to match broker statement ($258.86)</li>
+                <li>📈 Challenge Goal now shows percentage progress correctly</li>
+                <li>⚙️ Editable account base and challenge goal in settings</li>
             </ul>
         </div>
     </div>
@@ -1465,17 +1487,22 @@
             <div class="modal-body">
                 <form onsubmit="saveGoal(event)">
                     <div class="form-group">
-                        <label>Monthly Target (USD)</label>
-                        <input type="number" id="monthlyGoalInput" step="100" placeholder="10000" required>
+                        <label>Account Base Amount (USD)</label>
+                        <input type="number" id="accountBaseInput" step="100" placeholder="5000" required>
+                        <small style="color: var(--text-secondary); font-size: 0.75rem;">Starting balance for percentage calculations</small>
                     </div>
-                    <button type="submit" class="btn btn-success">Save Goal</button>
+                    <div class="form-group">
+                        <label>Challenge Goal (USD)</label>
+                        <input type="number" id="challengeGoalInput" step="100" placeholder="10000" required>
+                    </div>
+                    <button type="submit" class="btn btn-success">Save Settings</button>
                 </form>
             </div>
         </div>
     </div>
 
     <script>
-        // No default trades - all trades will be loaded from /data/database.md
+        // No default trades - all trades will be loaded from /data/database.json
         const defaultChallengeTrades = [];
 
         let data = {
@@ -1483,7 +1510,7 @@
                 usdToZarRate: 18.50, 
                 lastUpdated: new Date().toISOString().split('T')[0],
                 challengeGoal: 10000,
-                monthlyGoal: 10000
+                accountBase: 5000
             },
             accounts: {
                 'Main Account': [],
@@ -1499,14 +1526,21 @@
         let currentPeriod = 'month';
         let currentMonth = new Date(2026, 1, 1);
 
-        document.addEventListener('DOMContentLoaded', () => {
+        document.addEventListener('DOMContentLoaded', async () => {
+            // First load from localStorage (if exists)
             loadData();
-            loadExternalTrades(); // Load trades from external file
+            
+            // Then load from external database.json (this takes priority)
+            await loadExternalTrades();
+            
+            // Initialize UI
             initAccountSelector();
             document.getElementById('tradeDate').value = new Date().toISOString().split('T')[0];
             document.getElementById('exchangeRate').value = data.settings.usdToZarRate;
             document.getElementById('rateLastUpdated').textContent = data.settings.lastUpdated;
             document.getElementById('challengeGoal').value = data.settings.challengeGoal || 10000;
+            
+            // Update all displays
             updateDisplay();
         });
 
@@ -1515,19 +1549,16 @@
                 // Try to load trades from external JSON file
                 const response = await fetch('./data/database.json');
                 if (!response.ok) {
-                    console.log('No external trade file found, using localStorage');
+                    console.log('No external trade file found at ./data/database.json');
+                    console.log('Using localStorage data. Add trades and click "💾 Save to database.json" to create the file.');
                     return;
                 }
                 
                 const jsonData = await response.json();
                 
-                // Load trades for each account
+                // Load trades for each account (database.json takes priority)
                 if (jsonData.accounts) {
-                    Object.keys(jsonData.accounts).forEach(accountName => {
-                        if (jsonData.accounts[accountName]) {
-                            data.accounts[accountName] = jsonData.accounts[accountName];
-                        }
-                    });
+                    data.accounts = jsonData.accounts;
                 }
                 
                 // Load settings if present
@@ -1535,11 +1566,16 @@
                     data.settings = { ...data.settings, ...jsonData.settings };
                 }
                 
+                // Save to localStorage so it persists
                 saveData();
-                updateDisplay();
-                console.log('Loaded trades from external JSON file');
+                
+                console.log('✅ Successfully loaded trades from database.json');
+                console.log('Accounts loaded:', Object.keys(data.accounts));
+                Object.keys(data.accounts).forEach(acc => {
+                    console.log(`  ${acc}: ${data.accounts[acc].length} trades`);
+                });
             } catch (error) {
-                console.log('Error loading external trades:', error.message);
+                console.error('❌ Error loading external trades:', error);
             }
         }
 
@@ -1558,6 +1594,70 @@
 
         function saveData() {
             localStorage.setItem('tradingJournal', JSON.stringify(data));
+            // Also save to database.json for GitHub sync
+            saveToExternalDatabase();
+        }
+
+        function saveToExternalDatabase() {
+            // Create clean export data
+            const exportData = {
+                settings: data.settings,
+                accounts: data.accounts,
+                exportDate: new Date().toISOString(),
+                version: "0.24"
+            };
+
+            // Store in a global variable that can be manually downloaded if needed
+            window.currentDatabaseJSON = JSON.stringify(exportData, null, 2);
+            
+            // Show notification banner
+            showSaveNotification();
+            
+            // Notify user that they should update their database.json file
+            console.log('📝 Data updated! Click "💾 Save to database.json" in Settings to download the updated file.');
+        }
+
+        function showSaveNotification() {
+            // Check if notification already exists
+            let notification = document.getElementById('saveNotification');
+            if (!notification) {
+                notification = document.createElement('div');
+                notification.id = 'saveNotification';
+                notification.style.cssText = `
+                    position: fixed;
+                    top: 20px;
+                    right: 20px;
+                    background: var(--accent);
+                    color: white;
+                    padding: 15px 20px;
+                    border-radius: 12px;
+                    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+                    z-index: 10000;
+                    display: flex;
+                    align-items: center;
+                    gap: 12px;
+                    font-weight: 600;
+                    cursor: pointer;
+                    animation: slideIn 0.3s ease-out;
+                `;
+                notification.innerHTML = `
+                    <span>💾</span>
+                    <span>Changes saved! Click to download database.json</span>
+                `;
+                notification.onclick = () => {
+                    exportToJSON();
+                    notification.remove();
+                };
+                document.body.appendChild(notification);
+                
+                // Auto-hide after 10 seconds
+                setTimeout(() => {
+                    if (notification.parentElement) {
+                        notification.style.animation = 'slideOut 0.3s ease-in';
+                        setTimeout(() => notification.remove(), 300);
+                    }
+                }, 10000);
+            }
         }
 
         function updateMonthlyGoal() {
@@ -1753,14 +1853,19 @@
             mainPnL.textContent = (totalUSD >= 0 ? '$' : '-$') + Math.abs(totalUSD).toFixed(2);
             mainPnL.className = 'card-value ' + (totalUSD >= 0 ? 'profit' : 'loss');
 
-            // Update monthly goal display with progress bar
-            const monthlyGoal = data.settings.monthlyGoal || 10000;
-            const percentage = Math.min(Math.max((totalUSD / monthlyGoal) * 100, 0), 100);
+            // Update challenge goal display with progress bar
+            const challengeGoal = data.settings.challengeGoal || 10000;
+            const accountBase = data.settings.accountBase || 5000;
             
-            document.getElementById('currentGoalProgress').textContent = '$' + Math.abs(totalUSD).toFixed(2);
-            document.getElementById('goalTarget').textContent = '$' + monthlyGoal.toFixed(2);
-            document.getElementById('goalProgressBar').style.width = percentage + '%';
-            document.getElementById('goalProgressText').textContent = Math.round(percentage) + '%';
+            // Calculate percentage based on account base
+            const percentageGain = (totalUSD / accountBase) * 100;
+            const goalPercentage = (totalUSD / challengeGoal) * 100;
+            const displayPercentage = Math.min(Math.max(goalPercentage, 0), 100);
+            
+            document.getElementById('currentGoalProgress').textContent = '$' + totalUSD.toFixed(2);
+            document.getElementById('goalTarget').textContent = '$' + challengeGoal.toFixed(2);
+            document.getElementById('goalProgressBar').style.width = displayPercentage + '%';
+            document.getElementById('goalProgressText').textContent = Math.round(displayPercentage) + '%';
         }
 
         function updateDetailedStats() {
@@ -2190,7 +2295,8 @@
             document.getElementById(id).classList.add('active');
             if (id === 'settingsModal') updateAccountList();
             if (id === 'goalModal') {
-                document.getElementById('monthlyGoalInput').value = data.settings.monthlyGoal || 10000;
+                document.getElementById('accountBaseInput').value = data.settings.accountBase || 5000;
+                document.getElementById('challengeGoalInput').value = data.settings.challengeGoal || 10000;
             }
         }
 
@@ -2200,8 +2306,10 @@
 
         function saveGoal(e) {
             e.preventDefault();
-            const goal = parseFloat(document.getElementById('monthlyGoalInput').value);
-            data.settings.monthlyGoal = goal;
+            const base = parseFloat(document.getElementById('accountBaseInput').value);
+            const goal = parseFloat(document.getElementById('challengeGoalInput').value);
+            data.settings.accountBase = base;
+            data.settings.challengeGoal = goal;
             saveData();
             updateStats();
             closeModal('goalModal');
