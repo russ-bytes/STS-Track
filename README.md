@@ -6,22 +6,22 @@ Your project should be organized like this:
 
 ```
 your-repo/
-├── index.html          (rename Trading_Journal_v0_21.htm to this)
+├── index.html          (rename Trading_Journal_v0_23.htm to this)
 ├── data/
-│   └── database.md     (your trade data file)
+│   └── database.json   (your trade data file)
 └── README.md           (this file)
 ```
 
 ## 🚀 Setup Steps
 
 ### 1. Rename the HTML file
-Rename `Trading_Journal_v0_21.htm` to `index.html`
+Rename `Trading_Journal_v0_23.htm` to `index.html`
 
 ### 2. Create the data folder
 Create a folder called `data` in the same directory as `index.html`
 
 ### 3. Move the database file
-Move `database.md` into the `data` folder
+Move `database.json` into the `data` folder
 
 ### 4. Push to GitHub
 ```bash
@@ -40,36 +40,81 @@ Your journal will be live at: `https://your-username.github.io/your-repo-name/`
 
 ## 📊 Managing Your Trades
 
-### Adding New Trades
+### Database Structure (database.json)
 
-Edit `data/database.md` and add new rows to the table:
-
-```markdown
-| Date | Pair | Direction | Result | Entry | Exit | Lots | Quality | Manual | Notes |
-|------|------|-----------|--------|-------|------|------|---------|--------|-------|
-| 2026-02-15 | XAUUSD | BUY | 45.50 | 5100.00 | 5145.50 | 0.02 | Clean Win | NO | Morning trade |
+```json
+{
+  "settings": {
+    "usdToZarRate": 18.50,
+    "lastUpdated": "2026-02-14",
+    "challengeGoal": 10000,
+    "monthlyGoal": 10000
+  },
+  "accounts": {
+    "Main Account": [],
+    "Small Account": [],
+    "Challenge Account": [
+      {
+        "id": "c001",
+        "date": "2026-02-15",
+        "pair": "XAUUSD",
+        "direction": "BUY",
+        "resultUSD": 45.50,
+        "entry": 5100.00,
+        "exit": 5145.50,
+        "lots": 0.02,
+        "quality": "Clean Win",
+        "manualClose": false,
+        "partialClose": false,
+        "notes": "Morning session"
+      }
+    ]
+  }
+}
 ```
 
-### Field Guide
+### Adding New Trades
 
-- **Date**: YYYY-MM-DD format (e.g., 2026-02-15)
-- **Pair**: Trading symbol (XAUUSD, EURUSD, etc.)
-- **Direction**: BUY or SELL
-- **Result**: P&L in USD (use negative for losses: -10.50)
-- **Entry**: Entry price
-- **Exit**: Exit price  
-- **Lots**: Position size (0.01, 0.02, 0.03, etc.)
-- **Quality**: Clean Win, BE, Loss (or leave empty)
-- **Manual**: YES or NO (whether you manually closed)
-- **Notes**: Any notes or timestamps
-
-### Quick Edit in GitHub
-
-1. Navigate to `data/database.md` in your repo
+**Method 1: Edit JSON directly on GitHub**
+1. Navigate to `data/database.json` in your repo
 2. Click the ✏️ pencil icon to edit
-3. Add your new trades
+3. Add new trade objects to the appropriate account array
 4. Commit changes
-5. Your journal will update automatically!
+5. Your journal updates automatically!
+
+**Method 2: Use the web interface**
+1. Add trades via the "Quick Add Trade" form
+2. Trades saved to localStorage
+3. Go to Settings ⚙️
+4. Click "💾 Save to database.json"
+5. Download the file
+6. Replace `data/database.json` in your repo
+7. Commit to GitHub
+
+### Trade Object Fields
+
+```json
+{
+  "id": "unique-id",           // Auto-generated
+  "date": "2026-02-15",        // YYYY-MM-DD format
+  "pair": "XAUUSD",            // Trading symbol
+  "direction": "BUY",          // BUY or SELL
+  "resultUSD": 45.50,          // P&L in USD (negative for losses)
+  "entry": 5100.00,            // Entry price (optional)
+  "exit": 5145.50,             // Exit price (optional)
+  "lots": 0.02,                // Position size (optional)
+  "quality": "Clean Win",      // Clean Win, BE, Loss, or "" (optional)
+  "manualClose": false,        // true/false (optional)
+  "partialClose": false,       // true/false (optional)
+  "notes": "Morning session"   // Any notes (optional)
+}
+```
+
+### Quality Values
+- `"Clean Win"` - Perfect execution win
+- `"BE"` - Break even trade
+- `"Loss"` - Losing trade
+- `""` - Not specified (empty string)
 
 ## 🧮 PIP Calculator
 
@@ -78,7 +123,8 @@ https://russ-bytes.github.io/STS-Signal/
 
 ## 🎯 Features
 
-- ✅ Automatic trade loading from markdown file
+- ✅ JSON database for clean data management
+- ✅ Automatic trade loading from database.json
 - ✅ Period filters (Week, Month, Year, All time)
 - ✅ Monthly goal tracking with progress bar
 - ✅ Calendar view with daily P&L
@@ -86,47 +132,75 @@ https://russ-bytes.github.io/STS-Signal/
 - ✅ Charts (Equity, Daily, Win/Loss)
 - ✅ Trade quality tracking (Clean Win, BE, Loss)
 - ✅ Manual close tracking
-- ✅ Export to CSV
+- ✅ Export to JSON/CSV
 - ✅ Multi-account support
 
-## 💾 Local Storage
+## 💾 Data Flow
 
-The journal uses localStorage for settings and local trades. The `database.md` file serves as your primary trade record and will override the Challenge Account trades on each load.
+1. **Page loads** → Reads `/data/database.json`
+2. **Trades load** → All accounts and settings loaded
+3. **Add trade** → Saved to localStorage (temporary)
+4. **Export** → Generate new database.json with all data
+5. **Replace file** → Update your repo's database.json
+6. **Commit** → Push to GitHub, done!
 
 ## 🔄 Workflow
 
-### Option 1: Use the markdown file (Recommended for GitHub)
-1. Edit `data/database.md` to add trades
-2. Commit and push to GitHub
-3. Journal automatically loads trades on page refresh
+### Recommended: GitHub Web Editor
+1. Go to your repo on GitHub
+2. Navigate to `data/database.json`
+3. Click ✏️ Edit
+4. Add your trade to the appropriate account array
+5. Commit directly to main branch
+6. Refresh your journal page
+7. Trades appear automatically!
 
-### Option 2: Use the web interface
-1. Add trades using the "Quick Add Trade" form
-2. Trades are saved to localStorage
-3. Use "Export CSV" to backup your data
-
-## 📝 Tips
-
-- Keep your `database.md` file in sync with your actual trades
-- Use the export feature to backup your data regularly
-- The markdown format is easy to edit in any text editor
-- You can even edit directly on GitHub!
+### Alternative: Local Development
+1. Clone your repo
+2. Edit `data/database.json` locally
+3. Add/remove trades as needed
+4. Commit and push
+5. GitHub Pages updates automatically
 
 ## 🛠️ Troubleshooting
 
 **Trades not loading?**
-- Check that `data/database.md` exists
-- Verify the file path is correct: `./data/database.md`
-- Check browser console (F12) for errors
+- Check that `data/database.json` exists
+- Verify the file path is correct: `./data/database.json`
+- Open browser console (F12) for error messages
+- Make sure JSON is valid (use JSONLint.com)
+
+**Invalid JSON error?**
+- Missing comma between objects
+- Extra comma after last item
+- Check all quotes are proper double quotes `"`
+- Validate at: https://jsonlint.com
 
 **Calendar not showing trades?**
-- Make sure date format is YYYY-MM-DD
-- Check that Direction is BUY or SELL (uppercase)
-- Verify Result is a valid number
+- Date format must be YYYY-MM-DD
+- Direction must be "BUY" or "SELL" (uppercase)
+- resultUSD must be a number (no quotes)
+
+## 📝 Tips
+
+- **Always validate JSON** before committing (use JSONLint)
+- **Keep backups** using the "📥 JSON Backup" button
+- **Test locally** before pushing to production
+- **Use meaningful IDs** (e.g., "trade_2026_02_15_001")
+- **Add notes** to remember context of trades
 
 ## 📱 Mobile Friendly
 
 The journal is fully responsive and works great on mobile devices!
+
+## 🎨 Why JSON?
+
+✅ **Structured** - Proper data types (numbers, booleans)  
+✅ **Validated** - Easy to catch errors  
+✅ **Flexible** - Easy to add new fields  
+✅ **Standard** - Works everywhere  
+✅ **Clean** - No parsing needed  
+✅ **GitHub-friendly** - Easy to edit directly
 
 ---
 
